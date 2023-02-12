@@ -1,0 +1,28 @@
+{
+  "name": "andigenagate",
+  "version": "0.0.1",
+  "description": "Authorization webserver for andigena project.",
+  "main": "andigenagate.js",
+  "scripts": {
+    "start": "node andigenagate.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AndigenaTeam/andigenagate.git"
+  },
+  "author": "TheAndigenaTeam",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/AndigenaTeam/andigenagate/issues"
+  },
+  "homepage": "https://github.com/AndigenaTeam/andigenagate#readme",
+  "dependencies": {
+    "body-parser": "^1.20.0",
+    "clear": "^0.1.0",
+    "colorful-log": "^1.0.7",
+    "dotenv": "^16.0.2",
+    "express": "^4.18.1",
+    "mongoose": "^6.6.0",
+    "superagent": "^8.0.3"
+  }
+}
