@@ -19,7 +19,7 @@ http.use('/', require('./routes/twofactorRoutes'))
 http.use('/', require('./routes/loginRoutes'))
 http.use('/', require('./routes/miscRoutes'))
 
-http.get('/', async function(req, res, next) {
+http.get('/', async function(req, res) {
     res.render('index.html')
 })
 

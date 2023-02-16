@@ -39,17 +39,28 @@ const ActionType = {
 }
 
 const ClientType = {
-    Unknown: 0,
+    Editor: 0,
     IOS: 1,
     Android: 2,
     PC: 3,
-    WEB: 4,
-    WAP: 5,
-    Sony: 6,
-    Nintendo: 7,
-    CloudAndroid: 8,
-    CloudPC: 9,
-    CloudiOS: 10
+    PS4: 4,
+    Server: 5,
+    CloudAndroid: 6,
+    CloudIOS: 7,
+    PS5: 8,
+    CloudWeb: 9,
+    CloudTV: 10,
+    CloudMAC: 11,
+    CloudPC: 12,
+    Cloud3rdPartyMobile: 13,
+    Cloud3rdPartyPC: 14
+}
+
+const SceneType = {
+    Normal: "S_NORMAL",
+    Account: "S_ACCOUNT",
+    User: "S_USER",
+    Temple: "S_TEMPLE"
 }
 
 const loginStatusEnum = {
@@ -62,11 +73,39 @@ const preGrantWay = {
 }
 
 const statusCodes = {
-    ERROR: -104,
+    error: {
+        FAIL: -1,
+        CANCEL: -2,
+        NO_SUCH_METHOD: -10,
+        LOGIN_BASE: -100,
+        LOGIN_FAILED: -101,
+        LOGIN_CANCEL: -102,
+        LOGIN_ERROR: -103,
+        LOGOUT_FAILED: -104,
+        LOGOUT_CANCEL: -105,
+        LOGOUT_ERROR: 106,
+        PAY_FAILED: -107,
+        PAY_CANCEL: -108,
+        PAY_ERROR: -109,
+        PAY_UNKNOWN: -116,
+        EXIT_FAILED: -110,
+        EXIT_NO_DIALOG: -111,
+        EXIT_CANCEL: -112,
+        EXIT_ERROR: -113,
+        INIT_FAILED: -114,
+        INIT_ERROR: -115,
+        LOGIN_FORBIDDED: -117,
+        NEED_REALNAME: -118,
+        NEED_GUARDIAN: -119,
+        EOS_DLL_ERROR: -1001,
+        EOS_TOKEN_ERROR: -1002,
+        GOOGLE_PC_TOKEN_ERROR: -1003
+    },
     success: {
         WEB_STANDARD: 200,
         RETCODE: 0,
-        REGISTER: 1
+        REGISTER: 1,
+        PAY_LAUNCH: -120
     }
 }
 
@@ -74,6 +113,8 @@ const DEFAULT_CONFIG = {
     serverAddress: "127.0.0.1",
     serverPort: 669,
     disableRegistration: false,
+    allowGuestAccounts: false,
+    emailVerifyNewAccounts: true,
     socialLogin: {
         facebook: {
             enabled: true,
@@ -97,4 +138,4 @@ const DEFAULT_KEYS_CONFIG = {
     }
 }
 
-module.exports = {DEFAULT_CONFIG, DEFAULT_KEYS_CONFIG, EMAIL_REGEX, ActionType, ClientType, loginStatusEnum, preGrantWay, statusCodes}
+module.exports = {DEFAULT_CONFIG, DEFAULT_KEYS_CONFIG, EMAIL_REGEX, ActionType, ClientType, loginStatusEnum, preGrantWay, statusCodes, SceneType}

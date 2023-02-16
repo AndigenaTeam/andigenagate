@@ -18,7 +18,6 @@ module.exports = {
             username: { type: String, min: 5, max: 10, index: true, unique: true },
             email: { type: String, match: constants.EMAIL_REGEX, index: true, unique: true },
             password: { type: String, min: 8 },
-            last_region: {type: String},
             banned: {type: Boolean},
             operator: {type: Boolean},
             login_method: {type: Number, min: 0, max: 3},

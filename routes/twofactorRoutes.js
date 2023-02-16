@@ -17,16 +17,14 @@ module.exports = (function() {
             if (req.body.ticket !== req.body.code) return res.json({retcode: statusCodes.ERROR, message: "Invalid verification code."})
             await dbm.updateAccountByGrantTicket(req.body.ticket, true)
             let authdevices = await dbm.getAccountByGrantTicket(req.body.ticket)
-            let authorizedd = []
 
             if (!authdevices.authorized_devices.includes(req.headers["x-rpc-device_id"])) {
-                authorizedd.push(req.headers["x-rpc-device_id"])
-                await dbm.updateAccountGrantDevices(req.body.ticket, authorizedd)
+                authdevices.authorized_devices.push(req.headers["x-rpc-device_id"])
+                await dbm.updateAccountGrantDevices(req.body.ticket, authdevices.authorized_devices)
             } else {
-                await dbm.updateAccountGrantDevices(req.body.ticket, authdevices)
+                await dbm.updateAccountGrantDevices(req.body.ticket, authdevices.authorized_devices)
             }
 
-            //TODO: handle login_ticket and game_ticket
             sendLog('gate').info(`Account with deviceFp ${req.headers['x-rpc-device_fp']} completed email verification check.`)
             res.json({retcode: statusCodes.success.RETCODE, message: "OK", data: {login_ticket: "", game_token: `${Buffer.from(crypto.randomUUID().replaceAll('-', '')).toString("hex")}`}})
         } catch (e) {
@@ -57,7 +55,7 @@ module.exports = (function() {
                 case ActionType.BIND_EMAIL: {
                     await dbm.updateAccountByEmail(`${req.body.email}`, true)
 
-                    sendLog('gate').info(`Account with UID ??? was requested to bing their email address.`)
+                    sendLog('gate').info(`Account with email ${req.body.email} was requested to bind their email address.`)
                     res.json({retcode: statusCodes.success.RETCODE, message: "OK", data: null})
                 }
                     break;

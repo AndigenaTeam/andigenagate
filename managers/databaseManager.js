@@ -43,23 +43,22 @@ module.exports = {
         })
     },
 
-    createAccount(accountId = 0, username = '', email = '', password = '', emailVerified = false, sessionToken = "") {
+    createAccount(accountId = 0, username = '', email = '', password = '', loginMethod = 1, emailVerified = false, sessionToken = "", authorizedDevices = []) {
         return new Promise(async (res, rej) => {
             new accmodel({
                 account_id: `${accountId}`,
                 username: `${username}`,
                 email: `${email}`,
                 password: `${password}`,
-                last_region: "",
                 banned: false,
                 operator: false,
-                login_method: 0,
+                login_method: loginMethod,
                 last_version: "",
                 role: "00001",
                 email_verified: emailVerified,
                 grant_ticket: "",
-                session_token: sessionToken,
-                authorized_devices: []
+                session_token: `${sessionToken}`,
+                authorized_devices: authorizedDevices
         }).save(function (err, doc) {
             if (err) return rej(err)
                 res(doc._id)
@@ -77,9 +76,9 @@ module.exports = {
         })
     },
 
-    getAccountById(accountId = "") {
+    getAccountById(accountId = "", loginMethod = 1) {
         return new Promise(async (res, rej) => {
-            accmodel.findOne({account_id: `${accountId}`}, function (err, resp) {
+            accmodel.findOne({account_id: `${accountId}`, login_method: loginMethod}, function (err, resp) {
                 if (err) rej(err)
                 res(resp)
             })
@@ -104,9 +103,18 @@ module.exports = {
         })
     },
 
-    updateAccountById(accountUid = "", grantTicket = "", sessionToken = "") {
+    getAccountByDeviceId(deviceId = "", loginMethod = 0) {
         return new Promise(async (res, rej) => {
-            accmodel.updateOne({account_id: `${accountUid}`}, {session_token: `${sessionToken}`, grant_ticket: `${grantTicket}`}, function (err, resp) {
+            accmodel.findOne({authorized_devices: `${deviceId}`, login_method: loginMethod}, function (err, resp) {
+                if (err) rej(err)
+                res(resp)
+            })
+        })
+    },
+
+    updateAccountById(accountId = "", grantTicket = "", sessionToken = "") {
+        return new Promise(async (res, rej) => {
+            accmodel.updateOne({account_id: `${accountId}`}, {session_token: `${sessionToken}`, grant_ticket: `${grantTicket}`}, function (err, resp) {
                 if (err) rej(err)
                 res(resp)
             })
@@ -122,9 +130,9 @@ module.exports = {
         })
     },
 
-    updateAccountByUsername(accountUsername = "", grantTicket = "", sessionToken = "") {
+    updateAccountByUsername(accountUsername = "", grantTicket = "") {
         return new Promise(async (res, rej) => {
-            accmodel.updateOne({username: `${accountUsername}`}, {grant_ticket: `${grantTicket}`, session_token: `${sessionToken}`}, function (err, resp) {
+            accmodel.updateOne({username: `${accountUsername}`}, {grant_ticket: `${grantTicket}`}, function (err, resp) {
                 if (err) rej(err)
                 res(resp)
             })
@@ -143,6 +151,15 @@ module.exports = {
     updateAccountGrantDevices(grantTicket = "", authorizedDevices = []) {
         return new Promise(async (res, rej) => {
             accmodel.updateOne({grant_ticket: `${grantTicket}`}, {authorized_devices: authorizedDevices}, function (err, resp) {
+                if (err) rej(err)
+                res(resp)
+            })
+        })
+    },
+
+    updateAccountGrantDevicesById(accountId = "", authorizedDevices = []) {
+        return new Promise(async (res, rej) => {
+            accmodel.updateOne({account_id: `${accountId}`}, {authorized_devices: authorizedDevices}, function (err, resp) {
                 if (err) rej(err)
                 res(resp)
             })

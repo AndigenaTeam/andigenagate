@@ -1,5 +1,7 @@
 const express = require('express')
 const {ActionType} = require('../utils/constants')
+const cfg = require('../config.json')
+const {clientTypeFromClientId, getSceneFromSettings} = require("../utils/configUtils");
 
 module.exports = (function() {
     let miscr = express.Router()
@@ -31,7 +33,7 @@ module.exports = (function() {
     })
 
     miscr.get(`/hk4e_global/mdk/shield/api/loadConfig`, function (req, res) {
-        return res.json({"retcode":0,"message":"OK","data":{"id":6,"game_key":"hk4e_global","client":"PC","identity":"I_IDENTITY","guest":false,"ignore_versions":"","scene":"S_NORMAL","name":"原神海外","disable_regist":false,"enable_email_captcha":false,"thirdparty":["fb","tw"],"disable_mmt":false,"server_guest":false,"thirdparty_ignore":{"tw":"","fb":""},"enable_ps_bind_account":false,"thirdparty_login_configs":{"tw":{"token_type":"TK_GAME_TOKEN","game_token_expires_in":604800},"fb":{"token_type":"TK_GAME_TOKEN","game_token_expires_in":604800}}}})
+        return res.json({"retcode":0,"message":"OK","data":{"id":6,"game_key":`${req.query.game_key}`,"client":`${clientTypeFromClientId(req.query.client)}`,"identity":"I_IDENTITY","guest": cfg.allowGuestAccounts,"ignore_versions":"","scene":`${getSceneFromSettings()}`,"name":"原神海外","disable_regist": cfg.disableRegistration,"enable_email_captcha":false,"thirdparty":["fb","tw"],"disable_mmt":false,"server_guest": cfg.allowGuestAccounts,"thirdparty_ignore":{"tw":"","fb":""},"enable_ps_bind_account":false,"thirdparty_login_configs":{"tw":{"token_type":"TK_GAME_TOKEN","game_token_expires_in":604800},"fb":{"token_type":"TK_GAME_TOKEN","game_token_expires_in":604800}}}})
     })
 
     // abtest-api-data-sg.hoyoverse.com
