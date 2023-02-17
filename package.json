@@ -17,6 +17,7 @@
   },
   "homepage": "https://github.com/AndigenaTeam/andigenagate#readme",
   "dependencies": {
+    "bcrypt": "^5.1.0",
     "body-parser": "^1.20.0",
     "clear": "^0.1.0",
     "colorful-log": "^1.0.7",

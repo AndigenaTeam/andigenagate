@@ -1,5 +1,8 @@
 const crypto = require('crypto')
+const bcrypt = require('bcrypt')
+const cfg = require('../config.json')
 const {readFileSync} = require('fs')
+const keys = require("../data/configs/keys.json");
 
 module.exports = {
 
@@ -36,8 +39,14 @@ module.exports = {
         return Buffer.concat(chunks)
     },
 
-    encryptPassword(key, accountPassword) {
-        let pubkey = readFileSync(key)
+    encryptPassword(accountPassword) {
+        return new Promise((res, rej) => {
+            bcrypt.hash(accountPassword, cfg.advanced.accountPasswordHashRounds).then(function(hash) {
+                res(hash)
+            })
+        })
+
+        /*let pubkey = readFileSync(key)
         const chunkSize = (2048 / 8) - 11
         const chunkCount = Math.ceil(accountPassword.length / chunkSize)
         const chunks = []
@@ -47,6 +56,15 @@ module.exports = {
             chunks.push(crypto.publicEncrypt({ key: pubkey, padding: crypto.constants.RSA_PKCS1_PADDING }, chunk))
         }
 
-        return Buffer.concat(chunks)
+        return Buffer.concat(chunks)*/
+    },
+
+    validatePassword(accountPassword, clientPassword) {
+        return new Promise((res, rej) => {
+            let decrypted =  module.exports.decryptPassword(`${keys.signingKey}`, Buffer.from(clientPassword, 'base64')).toString("utf-8")
+            bcrypt.compare(decrypted, accountPassword).then(function(result) {
+                res(result)
+            });
+        })
     }
 }

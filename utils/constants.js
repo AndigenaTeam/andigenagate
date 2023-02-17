@@ -114,7 +114,9 @@ const DEFAULT_CONFIG = {
     serverPort: 669,
     disableRegistration: false,
     allowGuestAccounts: false,
-    emailVerifyNewAccounts: true,
+    allowQRCodeLogin: true,
+    verifyAccountEmail: true,
+    verifyAccountPassword: true,
     socialLogin: {
         facebook: {
             enabled: true,
@@ -124,6 +126,9 @@ const DEFAULT_CONFIG = {
             enabled: true,
             url: "https://google.com"
         }
+    },
+    advanced: {
+        accountPasswordHashRounds: 10
     }
 }
 

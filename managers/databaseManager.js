@@ -121,9 +121,18 @@ module.exports = {
         })
     },
 
-    updateAccountByEmail(accountEmail = "", verifiedEmail = false) {
+    updateAccountVerifiedByEmail(accountEmail = "", verifiedEmail = false, newPassword = "") {
         return new Promise(async (res, rej) => {
-            accmodel.updateOne({email: `${accountEmail}`}, {email_verified: `${verifiedEmail}`}, function (err, resp) {
+            accmodel.updateOne({email: `${accountEmail}`}, {email_verified: `${verifiedEmail}`, password: newPassword}, function (err, resp) {
+                if (err) rej(err)
+                res(resp)
+            })
+        })
+    },
+
+    updateAccountPasswordByEmail(accountEmail = "", newPassword = "") {
+        return new Promise(async (res, rej) => {
+            accmodel.updateOne({email: `${accountEmail}`}, {password: newPassword}, function (err, resp) {
                 if (err) rej(err)
                 res(resp)
             })

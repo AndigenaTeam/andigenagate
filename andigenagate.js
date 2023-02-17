@@ -23,6 +23,10 @@ http.get('/', async function(req, res) {
     res.render('index.html')
 })
 
+http.get('/mihoyo/common/accountSystemSandboxFE/index.html', async function(req, res) {
+    res.send('index.html')
+})
+
 const server = http.listen(cfg.serverPort, `${cfg.serverAddress}`, async () => {
     db.connect(process.env.DB_URL)
     sendLog("gate").info(`AndigenaGate listening on ${server.address().address}:${server.address().port}`)

@@ -49,13 +49,13 @@ module.exports = (function() {
         }
     })
 
-    pregrant.post(`/hk4e_global/mdk/shield/api/emailCaptcha`, async function (req, res) {
+    pregrant.post(`/:platform/mdk/shield/api/emailCaptcha`, async function (req, res) {
         try {
             switch (req.body.action_type) {
                 case ActionType.BIND_EMAIL: {
-                    await dbm.updateAccountByEmail(`${req.body.email}`, true)
+                    await dbm.updateAccountVerifiedByEmail(`${req.body.email}`, true)
 
-                    sendLog('gate').info(`Account with email ${req.body.email} was requested to bind their email address.`)
+                    sendLog('gate').info(`Account with email ${req.body.email} (platform: ${req.params.platform}) was requested to bind their email address.`)
                     res.json({retcode: statusCodes.success.RETCODE, message: "OK", data: null})
                 }
                     break;
