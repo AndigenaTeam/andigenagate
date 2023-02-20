@@ -41,7 +41,7 @@ module.exports = {
 
     encryptPassword(accountPassword) {
         return new Promise((res, rej) => {
-            bcrypt.hash(accountPassword, cfg.advanced.accountPasswordHashRounds).then(function(hash) {
+            bcrypt.hash(accountPassword, cfg.advanced.cryptography.accountPasswordHashRounds).then(function(hash) {
                 res(hash)
             })
         })

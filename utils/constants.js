@@ -2,6 +2,18 @@
 const EMAIL_REGEX = /^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/
 
 const ActionType = {
+    qrode: {
+        INIT: "Init",
+        SCANNED: "Scanned",
+        CONFIRMED: "Confirmed"
+    },
+    realname: {
+        NONE: 0,
+        BIND_NAME: 1,
+        MODIFY_NAME: 2,
+        BIND_PERSON: 3,
+        VERIFY_PERSON: 4
+    },
     NONE: "ACTION_NONE",
     LOGIN: "login",
     REGIST: "regist",
@@ -115,6 +127,7 @@ const DEFAULT_CONFIG = {
     disableRegistration: false,
     allowGuestAccounts: false,
     allowQRCodeLogin: true,
+    allowRealnameLogin: false,
     verifyAccountEmail: true,
     verifyAccountPassword: true,
     socialLogin: {
@@ -125,10 +138,18 @@ const DEFAULT_CONFIG = {
         twitter: {
             enabled: true,
             url: "https://google.com"
+        },
+        discordQR: {
+            enabled: true,
+            url: "https://discord.com"
         }
     },
     advanced: {
-        accountPasswordHashRounds: 10
+        disableYSDKGuard: false,
+        enableAnnouncePicPopup: true,
+        cryptography: {
+            accountPasswordHashRounds: 10
+        }
     }
 }
 

@@ -2,7 +2,6 @@ const mongoose = require('mongoose')
 const crypto = require('crypto')
 const {sendLog} = require("../utils/logUtils")
 const models = require('../utils/models')
-const cfg = require('../config.json')
 
 const accmodel = new mongoose.model('accountModel', models.accountSchema(), 'account')
 const rolemodel = new mongoose.model('roleModel', models.roleSchema(), 'roles')
@@ -58,7 +57,9 @@ module.exports = {
                 email_verified: emailVerified,
                 grant_ticket: "",
                 session_token: `${sessionToken}`,
-                authorized_devices: authorizedDevices
+                authorized_devices: authorizedDevices,
+                qrdata: {},
+                realname: {}
         }).save(function (err, doc) {
             if (err) return rej(err)
                 res(doc._id)
@@ -94,9 +95,9 @@ module.exports = {
         })
     },
 
-    getAccountByGrantTicket(grantTicket = "") {
+    getAccountByGrantTicket(grantTicket = "", loginMethod = 1) {
         return new Promise(async (res, rej) => {
-            accmodel.findOne({grant_ticket: `${grantTicket}`}, function (err, resp) {
+            accmodel.findOne({grant_ticket: `${grantTicket}`, login_method: loginMethod}, function (err, resp) {
                 if (err) rej(err)
                 res(resp)
             })
@@ -112,6 +113,15 @@ module.exports = {
         })
     },
 
+    getAccountBySessionToken(sessionToken = "") {
+        return new Promise(async (res, rej) => {
+            accmodel.findOne({session_token: `${sessionToken}`}, function (err, resp) {
+                if (err) rej(err)
+                res(resp)
+            })
+        })
+    },
+
     updateAccountById(accountId = "", grantTicket = "", sessionToken = "") {
         return new Promise(async (res, rej) => {
             accmodel.updateOne({account_id: `${accountId}`}, {session_token: `${sessionToken}`, grant_ticket: `${grantTicket}`}, function (err, resp) {
@@ -121,9 +131,9 @@ module.exports = {
         })
     },
 
-    updateAccountVerifiedByEmail(accountEmail = "", verifiedEmail = false, newPassword = "") {
+    updateAccountVerifiedByEmail(accountEmail = "", verifiedEmail = false) {
         return new Promise(async (res, rej) => {
-            accmodel.updateOne({email: `${accountEmail}`}, {email_verified: `${verifiedEmail}`, password: newPassword}, function (err, resp) {
+            accmodel.updateOne({email: `${accountEmail}`}, {email_verified: `${verifiedEmail}`}, function (err, resp) {
                 if (err) rej(err)
                 res(resp)
             })
@@ -157,7 +167,16 @@ module.exports = {
         })
     },
 
-    updateAccountGrantDevices(grantTicket = "", authorizedDevices = []) {
+    updateAccountRealnameById(accountId = "", realName = {}) {
+        return new Promise(async (res, rej) => {
+            accmodel.updateOne({account_id: `${accountId}`}, {realname: JSON.stringify(realName)}, function (err, resp) {
+                if (err) rej(err)
+                res(resp)
+            })
+        })
+    },
+
+    updateAccountGrantDevicesByGrantTicket(grantTicket = "", authorizedDevices = []) {
         return new Promise(async (res, rej) => {
             accmodel.updateOne({grant_ticket: `${grantTicket}`}, {authorized_devices: authorizedDevices}, function (err, resp) {
                 if (err) rej(err)
@@ -169,6 +188,15 @@ module.exports = {
     updateAccountGrantDevicesById(accountId = "", authorizedDevices = []) {
         return new Promise(async (res, rej) => {
             accmodel.updateOne({account_id: `${accountId}`}, {authorized_devices: authorizedDevices}, function (err, resp) {
+                if (err) rej(err)
+                res(resp)
+            })
+        })
+    },
+
+    updateAccountSessionTokenByGrantTicket(grantTicket = "", sessionToken = "") {
+        return new Promise(async (res, rej) => {
+            accmodel.updateOne({grant_ticket: `${grantTicket}`}, {session_token: sessionToken}, function (err, resp) {
                 if (err) rej(err)
                 res(resp)
             })

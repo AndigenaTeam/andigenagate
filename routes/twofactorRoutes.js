@@ -1,6 +1,7 @@
 const express = require('express')
 const {sendLog} = require('../utils/logUtils')
 const dbm = require('../managers/databaseManager')
+const cfg = require('../config.json')
 const {ActionType, preGrantWay, statusCodes} = require('../utils/constants')
 const crypto = require('crypto')
 
@@ -16,19 +17,20 @@ module.exports = (function() {
         try {
             if (req.body.ticket !== req.body.code) return res.json({retcode: statusCodes.ERROR, message: "Invalid verification code."})
             await dbm.updateAccountByGrantTicket(req.body.ticket, true)
-            let authdevices = await dbm.getAccountByGrantTicket(req.body.ticket)
+            let authdevices = await dbm.getAccountByGrantTicket(req.body.ticket, 1)
 
             if (!authdevices.authorized_devices.includes(req.headers["x-rpc-device_id"])) {
                 authdevices.authorized_devices.push(req.headers["x-rpc-device_id"])
-                await dbm.updateAccountGrantDevices(req.body.ticket, authdevices.authorized_devices)
+                await dbm.updateAccountGrantDevicesByGrantTicket(req.body.ticket, authdevices.authorized_devices)
             } else {
-                await dbm.updateAccountGrantDevices(req.body.ticket, authdevices.authorized_devices)
+                await dbm.updateAccountGrantDevicesByGrantTicket(req.body.ticket, authdevices.authorized_devices)
             }
 
             sendLog('gate').info(`Account with deviceFp ${req.headers['x-rpc-device_fp']} completed email verification check.`)
             res.json({retcode: statusCodes.success.RETCODE, message: "OK", data: {login_ticket: "", game_token: `${Buffer.from(crypto.randomUUID().replaceAll('-', '')).toString("hex")}`}})
         } catch (e) {
             sendLog('Gate').error(e)
+            res.json({retcode: statusCodes.error.FAIL, message: "Am error occurred, try again later! If this error persist contact the server administrator."})
         }
     })
 
@@ -46,6 +48,28 @@ module.exports = (function() {
             }
         } catch (e) {
             sendLog('Gate').error(e)
+            res.json({retcode: statusCodes.error.FAIL, message: "Am error occurred, try again later! If this error persist contact the server administrator."})
+        }
+    })
+
+    pregrant.post(`/:platform/mdk/shield/api/actionTicket`, async function(req, res) {
+        try {
+            let account = await dbm.getAccountById(req.body.account_id, 1)
+            if (!account) return res.json({retcode: statusCodes.error.LOGIN_FAILED, message: "Ticket cache information error."})
+
+            if (!account.authorized_devices.includes(req.headers['x-rpc-device_id'])) {
+                account.authorized_devices.push(req.headers["x-rpc-device_id"])
+                await dbm.updateAccountGrantDevicesById(account.account_id, account.authorized_devices)
+            }
+            let verifytoken = parseInt(Buffer.from(crypto.randomBytes(3)).toString("hex"), 16).toString().substring(0, 6)
+            let sessionkey = Buffer.from(crypto.randomUUID().replaceAll("-", '')).toString('hex')
+
+            await dbm.updateAccountById(account.account_id, verifytoken, sessionkey)
+            sendLog('gate').info(`Account with deviceFp ${req.headers['x-rpc-device_fp']} completed required verification(s) check.`)
+            res.json({retcode: statusCodes.success.RETCODE, message: "OK", data: {ticket: `${sessionkey}`}})
+        } catch (e) {
+            sendLog('Gate').error(e)
+            res.json({retcode: statusCodes.error.FAIL, message: "Am error occurred, try again later! If this error persist contact the server administrator."})
         }
     })
 
@@ -62,8 +86,44 @@ module.exports = (function() {
             }
         } catch (e) {
             sendLog('Gate').error(e)
+            res.json({retcode: statusCodes.error.FAIL, message: "Am error occurred, try again later! If this error persist contact the server administrator."})
         }
+    })
 
+    pregrant.post(`/:platform/mdk/shield/api/loginCaptcha`, async function (req, res) {
+        try {
+            return res.json({retcode: statusCodes.error.FAIL, message: "Not yet implemented!"})
+        } catch (e) {
+            sendLog('Gate').error(e)
+            res.json({retcode: statusCodes.error.FAIL, message: "Am error occurred, try again later! If this error persist contact the server administrator."})
+        }
+    })
+
+    pregrant.post(`/account/auth/api/bindRealname`, async function (req, res) {
+        try {
+            console.log('/auth/api/bindRealname', req.body)
+            let account = await dbm.getAccountBySessionToken(`${req.body.ticket}`)
+            if (!account) return res.json({retcode: statusCodes.error.LOGIN_FAILED, message: "Ticket cache information error."})
+            let rnd = (!account.realname) ? JSON.parse(account.realname) : {name: "", identity: ""}
+            if (rnd.name && rnd.identity) return res.json({retcode: statusCodes.error.FAIL, message: "Account already verified"})
+
+            let realname = {
+                name: req.body.realname,
+                identity: req.body.identity,
+                is_realperson: false,
+                operation: (cfg.allowRealnameLogin) ? ActionType.realname.BIND_NAME : ActionType.realname.NONE
+            }
+
+            await dbm.updateAccountRealnameById(account.account_id, {name: realname.name, identity: realname.identity})
+
+            res.json({retcode: statusCodes.success.RETCODE, message: "OK", data: {account: {
+                        uid: account.account_id, name: account.username, email: account.email, realname: realname.name, identity_card: realname.identity}
+                }})
+            sendLog('gate').info(`Account with ticket ${req.body.ticket} was requested to bind their realname.`)
+        } catch (e) {
+            sendLog('Gate').error(e)
+            res.json({retcode: statusCodes.error.FAIL, message: "Am error occurred, try again later! If this error persist contact the server administrator."})
+        }
     })
 
     return pregrant;

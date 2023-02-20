@@ -26,7 +26,9 @@ module.exports = {
             email_verified: {type: Boolean, default: false},
             grant_ticket: {type: String, default: ""},
             session_token: {type: String, default: ""},
-            authorized_devices: {type: Array, default: []}
+            authorized_devices: {type: Array, default: []},
+            qrdata: {Type: Object, default: {}},
+            realname: {Type: Object, default: {}}
             //game_accounts: {type: Object, default: {}}
         });
     }

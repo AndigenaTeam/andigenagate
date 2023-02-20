@@ -15,6 +15,11 @@ module.exports = {
             sendLog('config utility').debug(`/data/configs directory does not exist... creating empty one for you :D`)
         }
 
+        if (!existsSync(`./data/languages`)) {
+            mkdirSync(`./data/languages`)
+            sendLog('config utility').debug(`/data/languages directory does not exist... creating empty one for you :D`)
+        }
+
         if (!existsSync(`./data/keys`)) {
             mkdirSync(`./data/keys`)
             sendLog('config utility').debug(`/data/keys directory does not exist... creating empty one for you :D`)

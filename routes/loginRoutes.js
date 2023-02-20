@@ -2,7 +2,7 @@ const express = require('express')
 const cfg = require('../config.json')
 const {sendLog} = require('../utils/logUtils')
 const dbm = require('../managers/databaseManager')
-const {statusCodes} = require('../utils/constants')
+const {statusCodes, ActionType} = require('../utils/constants')
 const {validatePassword} = require('../managers/cryptManager')
 const crypto = require('crypto')
 
@@ -24,14 +24,16 @@ module.exports = (function() {
                 if (validatedpass === false) return res.json({retcode: statusCodes.error.LOGIN_FAILED, message: "Account password is invalid.", data: null})
             }
 
+            let rnd = (!account.realname) ? JSON.parse(account.realname) : {name: "", identity: ""}
+
             let data = {
                 device_grant_required: false,
                 safe_mobile_required: false,
-                realname_operation: "NONE",
+                realname_operation: (!account.realname) ? ActionType.realname.BIND_NAME : ActionType.realname.NONE,
                 realperson_required: false,
                 account: {
                     uid: `${account.account_id}`, name: `${account.username}`, email: `${account.email}`, mobile: "", is_email_verify: "0",
-                    realname: "", identity_card: "", token: `${account.session_token}`, safe_mobile: "",
+                    realname: `${rnd.name}`, identity_card: `${rnd.identity}`, token: `${account.session_token}`, safe_mobile: "",
                     facebook_name: "", twitter_name: "", game_center_name: "", google_name: "",
                     apple_name: "", sony_name: "", tap_name: "", country: "US",
                     reactivate_ticket: "", area_code: "**", device_grant_ticket: "" }
@@ -39,23 +41,21 @@ module.exports = (function() {
 
             if (cfg.verifyAccountEmail && !account.email_verified) {
                 let verifytoken = parseInt(Buffer.from(crypto.randomBytes(3)).toString("hex"), 16).toString().substring(0, 6)
-
                 await dbm.updateAccountByUsername(`${req.body.account}`, `${verifytoken}`)
-
                 data.device_grant_required = true;
                 data.account.device_grant_ticket = `${verifytoken}`;
 
-                sendLog("Gate").info(`Account with username ${req.body.account} logged in successfully.`)
                 res.json({ retcode: statusCodes.success.RETCODE, message: "OK", data: data })
-
-            } else if (!cfg.verifyAccountEmail ) {
+            } else if (!cfg.verifyAccountEmail || account.email_verified) {
                 data.account.is_email_verify = "1";
 
-                sendLog("Gate").info(`Account with username ${req.body.account} (platform: ${req.params.platform}) logged in successfully.`)
                 res.json({ retcode: statusCodes.success.RETCODE, message: "OK", data: data })
             }
+
+            sendLog("Gate").info(`Account with username ${req.body.account} (platform: ${req.params.platform}) logged in successfully.`)
         } catch (e) {
             sendLog('Gate').error(e)
+            res.json({retcode: statusCodes.error.FAIL, message: "An error occurred, try again later! If this error persist contact the server administrator."})
         }
     })
 
@@ -70,14 +70,16 @@ module.exports = (function() {
             let account = await dbm.getAccountById(req.body.uid, 1)
             if (!account || !req.body.token || !account.authorized_devices.includes(req.headers['x-rpc-device_id'])) return res.json({retcode: statusCodes.error.LOGIN_FAILED, message: "Game account cache information error."})
 
+            let rnd = (!account.realname) ? JSON.parse(account.realname) : {name: "", identity: ""}
+
             let data = {
                 device_grant_required: false,
                 safe_mobile_required: false,
-                realname_operation: "NONE",
+                realname_operation: (!account.realname) ? ActionType.realname.BIND_NAME : ActionType.realname.NONE,
                 realperson_required: false,
                 account: {
                     uid: `${account.account_id}`, name: `${account.username}`, email: `${account.email}`, mobile: "", is_email_verify: "1",
-                    realname: "", identity_card: "", token: `${req.body.token}`, safe_mobile: "",
+                    realname: `${rnd.name}`, identity_card: `${rnd.identity}`, token: `${req.body.token}`, safe_mobile: "",
                     facebook_name: "", twitter_name: "", game_center_name: "", google_name: "",
                     apple_name: "", sony_name: "", tap_name: "", country: "US",
                     reactivate_ticket: "", area_code: "**", device_grant_ticket: "" }
@@ -86,6 +88,7 @@ module.exports = (function() {
             res.json({ retcode: statusCodes.success.RETCODE, message: "OK", data: data })
         } catch (e) {
             sendLog('Gate').error(e)
+            res.json({retcode: statusCodes.error.FAIL, message: "An error occurred, try again later! If this error persist contact the server administrator."})
         }
     })
 
@@ -133,6 +136,7 @@ module.exports = (function() {
 
         } catch (e) {
             sendLog('Gate').error(e)
+            res.json({retcode: statusCodes.error.FAIL, message: "An error occurred, try again later! If this error persist contact the server administrator."})
         }
     })
 
@@ -140,6 +144,7 @@ module.exports = (function() {
     //                              LOGIN ROUTE
     //                               guest mode
     // ==============================================================================
+
     login.post(`/:platform/mdk/guest/guest/v2/login`, async function(req, res) {
         try {
             sendLog('/guest/v2/login').debug(`${JSON.stringify(req.body)}`)
@@ -165,6 +170,64 @@ module.exports = (function() {
             }
         } catch (e) {
             sendLog('Gate').error(e)
+            res.json({retcode: statusCodes.error.FAIL, message: "An error occurred, try again later! If this error persist contact the server administrator."})
+        }
+    })
+
+    // ==============================================================================
+    //                              LOGIN ROUTE
+    //                           beforeVerify check
+    // ==============================================================================
+
+    login.post(`/:platform/combo/granter/login/beforeVerify`, async function (req, res) {
+        try {
+            console.log('/login/beforeVerify', req.body)
+
+            res.json({retcode: statusCodes.success.RETCODE, message: "OK", data: {is_heartbeat_required: false, is_realname_required: cfg.allowRealnameLogin, is_guardian_required: false}})
+        } catch (e) {
+            sendLog('Gate').error(e)
+            res.json({retcode: statusCodes.error.FAIL, message: "An error occurred, try again later! If this error persist contact the server administrator."})
+        }
+    })
+
+    // ==============================================================================
+    //                              LOGIN ROUTE
+    //                                 QRCode
+    // ==============================================================================
+
+    login.post(`/:platform/combo/panda/qrcode/fetch`, async function(req, res) {
+        try {
+            if (!cfg.allowQRCodeLogin) return res.json({retcode: statusCodes.error.FAIL, message: "QRCode login is disabled!"})
+            let url;
+            let ticket = "testticket"
+            if (cfg.socialLogin.discordQR.enabled) {
+                url = cfg.socialLogin.discordQR.url
+            } else {
+                url = "/Api/login_by_qr"
+            }
+
+            res.json({retcode: statusCodes.success.RETCODE, message: "OK", data: {url: `${url}?expire=1000000\u0026ticket=${ticket}\u0026device=${req.body.device}`}})
+        } catch (e) {
+            sendLog('Gate').error(e)
+            res.json({retcode: statusCodes.error.FAIL, message: "An error occurred, try again later! If this error persist contact the server administrator."})
+        }
+    })
+
+    login.post(`/:platform/combo/panda/qrcode/query`, async function(req, res) {
+        try {
+            if (!cfg.allowQRCodeLogin) return res.json({retcode: statusCodes.error.FAIL, message: "QRCode login is disabled!"})
+            let url;
+            let ticket = "testticket"
+            if (cfg.socialLogin.discordQR.enabled) {
+                url = cfg.socialLogin.discordQR.url
+            } else {
+                url = "/Api/login_by_qr"
+            }
+
+            res.json({retcode: statusCodes.success.RETCODE, message: "OK", data: {"stat": ActionType.qrode.INIT, "payload": {} }})
+        } catch (e) {
+            sendLog('Gate').error(e)
+            res.json({retcode: statusCodes.error.FAIL, message: "An error occurred, try again later! If this error persist contact the server administrator."})
         }
     })
 
@@ -178,6 +241,7 @@ module.exports = (function() {
             res.send("custom oauth2's ???? whentm")
         } catch (e) {
             sendLog('Gate').error(e)
+            res.json({retcode: statusCodes.error.FAIL, message: "An error occurred, try again later! If this error persist contact the server administrator."})
         }
     })
 
@@ -221,6 +285,7 @@ module.exports = (function() {
             }
         } catch (e) {
             sendLog('Gate').error(e)
+            res.json({retcode: statusCodes.error.FAIL, message: "An error occurred, try again later! If this error persist contact the server administrator."})
         }
     })
 
@@ -229,6 +294,7 @@ module.exports = (function() {
             res.send("not yet implemented")
         } catch (e) {
             sendLog('Gate').error(e)
+            res.json({retcode: statusCodes.error.FAIL, message: "An error occurred, try again later! If this error persist contact the server administrator."})
         }
     })
 
@@ -237,6 +303,7 @@ module.exports = (function() {
             res.send("not yet implemented")
         } catch (e) {
             sendLog('Gate').error(e)
+            res.json({retcode: statusCodes.error.FAIL, message: "An error occurred, try again later! If this error persist contact the server administrator."})
         }
     })
 
@@ -249,6 +316,7 @@ module.exports = (function() {
             }
         } catch (e) {
             sendLog('Gate').error(e)
+            res.json({retcode: statusCodes.error.FAIL, message: "An error occurred, try again later! If this error persist contact the server administrator."})
         }
     })
 
