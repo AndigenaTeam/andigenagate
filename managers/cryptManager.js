@@ -59,9 +59,9 @@ module.exports = {
         return Buffer.concat(chunks)*/
     },
 
-    validatePassword(accountPassword, clientPassword) {
+    validatePassword(accountPassword, clientPassword, decrypt = true) {
         return new Promise((res, rej) => {
-            let decrypted =  module.exports.decryptPassword(`${keys.signingKey}`, Buffer.from(clientPassword, 'base64')).toString("utf-8")
+            let decrypted =  (decrypt) ? module.exports.decryptPassword(`${keys.signingKey}`, Buffer.from(clientPassword, 'base64')).toString("utf-8") : clientPassword
             bcrypt.compare(decrypted, accountPassword).then(function(result) {
                 res(result)
             });

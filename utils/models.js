@@ -28,7 +28,7 @@ module.exports = {
             session_token: {type: String, default: ""},
             authorized_devices: {type: Array, default: []},
             qrdata: {Type: Object, default: {}},
-            realname: {Type: Object, default: {}}
+            realname: {name: {Type: String, default: ""}, identity: {Type: String, default: ""}}
             //game_accounts: {type: Object, default: {}}
         });
     }

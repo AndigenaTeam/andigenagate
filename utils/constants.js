@@ -68,6 +68,11 @@ const ClientType = {
     Cloud3rdPartyPC: 14
 }
 
+const PlatformType = {
+    CN: "hk4e_cn",
+    OS: "hk4e_global"
+}
+
 const SceneType = {
     Normal: "S_NORMAL",
     Account: "S_ACCOUNT",
@@ -81,7 +86,8 @@ const loginStatusEnum = {
 }
 
 const preGrantWay = {
-    WAY_EMAIL: 'Way_Email'
+    WAY_EMAIL: 'Way_Email',
+    WAY_BINDMOBILE: 'Way_BindMobile'
 }
 
 const statusCodes = {
@@ -147,6 +153,7 @@ const DEFAULT_CONFIG = {
     advanced: {
         disableYSDKGuard: false,
         enableAnnouncePicPopup: true,
+        uidPrefix: "8",
         cryptography: {
             accountPasswordHashRounds: 10
         }
@@ -164,4 +171,4 @@ const DEFAULT_KEYS_CONFIG = {
     }
 }
 
-module.exports = {DEFAULT_CONFIG, DEFAULT_KEYS_CONFIG, EMAIL_REGEX, ActionType, ClientType, loginStatusEnum, preGrantWay, statusCodes, SceneType}
+module.exports = {DEFAULT_CONFIG, DEFAULT_KEYS_CONFIG, EMAIL_REGEX, ActionType, ClientType, loginStatusEnum, preGrantWay, statusCodes, SceneType, PlatformType}

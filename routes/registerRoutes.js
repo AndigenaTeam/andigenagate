@@ -3,6 +3,7 @@ const {sendLog} = require('../utils/logUtils')
 const dbm = require('../managers/databaseManager')
 const crm = require('../managers/cryptManager')
 const {statusCodes} = require('../utils/constants')
+const cfg = require('../config.json')
 const crypto = require('crypto')
 
 module.exports = (function() {
@@ -12,11 +13,11 @@ module.exports = (function() {
         try {
             sendLog('/Api/regist_by_email').debug(`${JSON.stringify({username: req.body.username, email: req.body.email})}`)
             if (req.body.email && req.body.password) {
-                let uid = Math.floor(1000 + Math.random() * 9000)
+                let uid = cfg.advanced.uidPrefix + Math.floor(1000 + Math.random() * 9000).toString()
                 let token = Buffer.from(crypto.randomUUID().replaceAll('-', '')).toString("hex")
                 let password = await crm.encryptPassword(req.body.password)
 
-                await dbm.createAccount(uid, `${req.body.username}`, `${req.body.email}`, `${password}`, 1, false, "", [])
+                await dbm.createAccount(parseInt(uid), `${req.body.username}`, `${req.body.email}`, `${password}`, 1, false, "", [])
 
                 sendLog('gate').info(`Account with UID: ${uid} registered.`)
                 res.json({code: statusCodes.success.WEB_STANDARD, data: {
@@ -25,6 +26,7 @@ module.exports = (function() {
             }
         } catch (e) {
             sendLog('Gate').error(e)
+            res.json({retcode: statusCodes.error.FAIL, message: "An error occurred, try again later! If this error persist contact the server administrator."})
         }
     })
 
@@ -46,6 +48,7 @@ module.exports = (function() {
             }
         } catch (e) {
             sendLog('Gate').error(e)
+            res.json({retcode: statusCodes.error.FAIL, message: "An error occurred, try again later! If this error persist contact the server administrator."})
         }
     })
 

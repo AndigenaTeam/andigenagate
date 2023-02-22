@@ -28,11 +28,11 @@ module.exports = {
             rolemodel.countDocuments({name: 'admin'}, function (err, count) {
                 if (err) return rej(err)
                 if (count === 0) {
-                    new rolemodel({role_id: `${crypto.randomInt(1000, 99999999)}`, name: `admin`, prefix: `&6[&cAdmin&6]&r `, created_by: `69`, permissions: [`*`]}).save(function (err, doc) {
+                    new rolemodel({role_id: `${crypto.randomInt(1000, 99999999)}`, name: `admin`, prefix: `&6[&cAdmin&6]&r `, created_by: `69`, permissions: [`*`]}).save(function (err) {
                         if (err) return rej(err)
                         sendLog('database').debug(`Creating default role "admin"...`)
                     })
-                    new rolemodel({role_id: `00001`, name: `default`, prefix: ``, created_by: `69`, permissions: []}).save(function (err, doc) {
+                    new rolemodel({role_id: `00001`, name: `default`, prefix: ``, created_by: `69`, permissions: []}).save(function (err) {
                         if (err) return rej(err)
                         sendLog('database').debug(`Creating default role "default"...`)
                     })
@@ -59,7 +59,7 @@ module.exports = {
                 session_token: `${sessionToken}`,
                 authorized_devices: authorizedDevices,
                 qrdata: {},
-                realname: {}
+                realname: {name: "", identity: ""},
         }).save(function (err, doc) {
             if (err) return rej(err)
                 res(doc._id)
@@ -169,7 +169,7 @@ module.exports = {
 
     updateAccountRealnameById(accountId = "", realName = {}) {
         return new Promise(async (res, rej) => {
-            accmodel.updateOne({account_id: `${accountId}`}, {realname: JSON.stringify(realName)}, function (err, resp) {
+            accmodel.updateOne({account_id: `${accountId}`}, {realname: realName}, function (err, resp) {
                 if (err) rej(err)
                 res(resp)
             })
