@@ -29,7 +29,7 @@ module.exports = (function() {
                 await dbm.updateAccountGrantDevicesByGrantTicket(req.body.ticket, authdevices.authorized_devices)
             }
 
-            sendLog('gate').info(`Account with deviceId ${req.headers['x-rpc-device_id']} completed email verification check.`)
+            sendLog('Gate').info(`Account with deviceId ${req.headers['x-rpc-device_id']} completed email verification check.`)
             res.json({retcode: statusCodes.success.RETCODE, message: "OK", data: {login_ticket: "", game_token: `${newtoken}`}})
         } catch (e) {
             sendLog('Gate').error(e)
@@ -43,14 +43,14 @@ module.exports = (function() {
                 case preGrantWay.WAY_EMAIL: {
                     await dbm.updateAccountByGrantTicket(req.body.action_ticket, false)
 
-                    sendLog('gate').info(`Account with deviceId ${req.body.device.device_id} requested email verification code.`)
+                    sendLog('Gate').info(`Account with deviceId ${req.body.device.device_id} requested email verification code.`)
                     res.json({retcode: statusCodes.success.RETCODE, message: "OK", data: {ticket: `${req.body.action_ticket}`}})
                 }
                 break;
                 case preGrantWay.WAY_BINDMOBILE: {
                     await dbm.updateAccountByGrantTicket(req.body.action_ticket, false)
 
-                    sendLog('gate').info(`Account with deviceId ${req.body.device.device_id} requested email verification code.`)
+                    sendLog('Gate').info(`Account with deviceId ${req.body.device.device_id} requested email verification code.`)
                     res.json({retcode: statusCodes.success.RETCODE, message: "OK", data: {ticket: `${req.body.action_ticket}`}})
                 }
                 break;
@@ -66,16 +66,12 @@ module.exports = (function() {
             console.log('/api/actionTicket', req.body)
             let account = await dbm.getAccountById(req.body.account_id, 1)
             if (!account) return res.json({retcode: statusCodes.error.LOGIN_FAILED, message: "Ticket cache information error."})
-            if (!account.authorized_devices.includes(req.headers['x-rpc-device_id'])) return res.json({retcode: statusCodes.error.LOGIN_FAILED, message: "Game cache information error."})
+            if (!account.authorized_devices.includes(req.headers['x-rpc-device_id']) || !req.body.game_token || account.session_token !== req.body.game_token) return res.json({retcode: statusCodes.error.LOGIN_FAILED, message: "Game cache information error."})
 
-            /*if (account.authorized_devices.includes(req.headers['x-rpc-device_id'])) {
-                account.authorized_devices.push(req.headers["x-rpc-device_id"])
-                await dbm.updateAccountGrantDevicesById(account.account_id, account.authorized_devices)
-            }*/
             let verifytoken = await encryptPassword(parseInt(Buffer.from(crypto.randomBytes(3)).toString("hex"), 16).toString().substring(0, 6))
 
             await dbm.updateAccountById(account.account_id, verifytoken, req.body.game_token)
-            sendLog('gate').info(`Account with deviceId ${req.headers['x-rpc-device_id']} completed required verification(s) check.`)
+            sendLog('Gate').info(`Account with deviceId ${req.headers['x-rpc-device_id']} completed required verification(s) check.`)
             res.json({retcode: statusCodes.success.RETCODE, message: "OK", data: {ticket: `${verifytoken}`}})
         } catch (e) {
             sendLog('Gate').error(e)
@@ -89,7 +85,7 @@ module.exports = (function() {
                 case ActionType.BIND_EMAIL: {
                     await dbm.updateAccountVerifiedByEmail(`${req.body.email}`, true)
 
-                    sendLog('gate').info(`Account with email ${req.body.email} (platform: ${req.params.platform}) was requested to bind their email address.`)
+                    sendLog('Gate').info(`Account with email ${req.body.email} (platform: ${req.params.platform}) was requested to bind their email address.`)
                     res.json({retcode: statusCodes.success.RETCODE, message: "OK", data: null})
                 }
                     break;
@@ -111,10 +107,11 @@ module.exports = (function() {
 
     pregrant.post(`/account/auth/api/bindRealname`, async function (req, res) {
         try {
-            console.log('/auth/api/bindRealname', req.body)
+            sendLog('/api/bindRealname').debug(`${JSON.stringify(req.body)}`)
             let account = await dbm.getAccountByGrantTicket(`${req.body.ticket}`)
             if (!account) return res.json({retcode: statusCodes.error.FAIL, message: "Ticket cache information error."})
-            if (account.realname.name.length > 0 && account.realname.identity > 0) return res.json({retcode: statusCodes.error.FAIL, message: "Account already verified"})
+            let rnd = JSON.parse(JSON.stringify(account.realname))
+            if (rnd.name !== null && rnd.identity !== null) return res.json({retcode: statusCodes.error.FAIL, message: "Account already verified"})
 
             let realname = {
                 name: req.body.realname,
@@ -128,7 +125,7 @@ module.exports = (function() {
             res.json({retcode: statusCodes.success.RETCODE, message: "OK", data: {account: {
                         uid: account.account_id, name: account.username, email: account.email, realname: realname.name, identity_card: realname.identity}
                 }})
-            sendLog('gate').info(`Account with ticket ${req.body.ticket} was requested to bind their realname.`)
+            sendLog('Gate').info(`Account with ticket ${req.headers['x-rpc-device_id']} was requested to bind their realname.`)
         } catch (e) {
             sendLog('Gate').error(e)
             res.json({retcode: statusCodes.error.FAIL, message: "An error occurred, try again later! If this error persist contact the server administrator."})

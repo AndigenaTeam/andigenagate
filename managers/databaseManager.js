@@ -2,9 +2,11 @@ const mongoose = require('mongoose')
 const crypto = require('crypto')
 const {sendLog} = require("../utils/logUtils")
 const models = require('../utils/models')
+const {ActionType} = require("../utils/constants");
 
 const accmodel = new mongoose.model('accountModel', models.accountSchema(), 'account')
 const rolemodel = new mongoose.model('roleModel', models.roleSchema(), 'roles')
+const qrloginmodel = new mongoose.model("qrLoginModel", models.qrLoginSchema(), "qrdata")
 
 module.exports = {
     connect(url = process.env.DB_URL) {
@@ -42,6 +44,8 @@ module.exports = {
         })
     },
 
+    // ===================== ACCOUNT =====================
+
     createAccount(accountId = 0, username = '', email = '', password = '', loginMethod = 1, emailVerified = false, sessionToken = "", authorizedDevices = []) {
         return new Promise(async (res, rej) => {
             new accmodel({
@@ -56,10 +60,10 @@ module.exports = {
                 role: "00001",
                 email_verified: emailVerified,
                 grant_ticket: "",
+                forget_ticket: "",
                 session_token: `${sessionToken}`,
                 authorized_devices: authorizedDevices,
-                qrdata: {},
-                realname: {name: "", identity: ""},
+                realname: {name: null, identity: null},
         }).save(function (err, doc) {
             if (err) return rej(err)
                 res(doc._id)
@@ -107,15 +111,6 @@ module.exports = {
     getAccountByDeviceId(deviceId = "", loginMethod = 0) {
         return new Promise(async (res, rej) => {
             accmodel.findOne({authorized_devices: `${deviceId}`, login_method: loginMethod}, function (err, resp) {
-                if (err) rej(err)
-                res(resp)
-            })
-        })
-    },
-
-    getAccountBySessionToken(sessionToken = "") {
-        return new Promise(async (res, rej) => {
-            accmodel.findOne({session_token: `${sessionToken}`}, function (err, resp) {
                 if (err) rej(err)
                 res(resp)
             })
@@ -203,9 +198,9 @@ module.exports = {
         })
     },
 
-    getAccountByGameId(region = "", gameId = "") {
+    updateAccountPasswordRstCodeById(accountId, emailCode = "") {
         return new Promise(async (res, rej) => {
-            accmodel.findOne({'game_account': {region: `${gameId}`}}, function (err, resp) {
+            accmodel.updateOne({account_id: `${accountId}`}, {forget_ticket: emailCode}, function (err, resp) {
                 if (err) rej(err)
                 res(resp)
             })
@@ -255,5 +250,41 @@ module.exports = {
                 res(resp)
             })
         })
-    }
+    },
+
+    // ===================== QRCODE LOGIN =====================
+
+    createQR(ticket = "", state = ActionType.qrode.INIT, deviceId = "", expires = "") {
+        return new Promise(async (res, rej) => {
+            new qrloginmodel({
+                ticket: ticket,
+                state: state,
+                deviceId: deviceId,
+                expires: expires
+            }).save(function (err, doc) {
+                if (err) return rej(err)
+                res(doc._id)
+                console.log(doc)
+                //sendLog('Database').info(`User ${username} (${accountId}) registered/created successfully.`)
+            })
+        })
+    },
+
+    getQRByDeviceId(deviceId, ticket) {
+        return new Promise(async (res, rej) => {
+            qrloginmodel.findOne({deviceId: `${deviceId}`, ticket: ticket}, function (err, resp) {
+                if (err) rej(err)
+                res(resp)
+            })
+        })
+    },
+
+    updateQRByDeviceId(deviceId = "", ticket = "", state = "") {
+        return new Promise(async (res, rej) => {
+            qrloginmodel.updateOne({deviceId: `${deviceId}`, ticket: ticket}, {state: state}, function (err, resp) {
+                if (err) rej(err)
+                res(resp)
+            })
+        })
+    },
 }

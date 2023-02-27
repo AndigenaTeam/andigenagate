@@ -12,6 +12,15 @@ module.exports = {
         });
     },
 
+    qrLoginSchema() {
+        return new mongoose.Schema({
+            ticket: { type: String, index: true, unique: true },
+            state: {type: String, default: ''},
+            deviceId: {type: String, default: ''},
+            expires: {type: String, default: ''}
+        });
+    },
+
     accountSchema() {
         return new mongoose.Schema({
             account_id: { type: String, index: true, unique: true },
@@ -25,9 +34,10 @@ module.exports = {
             role: {type: String},
             email_verified: {type: Boolean, default: false},
             grant_ticket: {type: String, default: ""},
+            forget_ticket: {Type: String, default: ""},
             session_token: {type: String, default: ""},
             authorized_devices: {type: Array, default: []},
-            qrdata: {Type: Object, default: {}},
+            qrdata: {ticket: {Type: String, default: ""}, state: {Type: String, default: ""}},
             realname: {name: {Type: String, default: ""}, identity: {Type: String, default: ""}}
             //game_accounts: {type: Object, default: {}}
         });

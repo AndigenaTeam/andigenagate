@@ -19,6 +19,7 @@ module.exports = (function() {
             sendLog('/api/login').debug(`${JSON.stringify(req.body)}`)
             let account = await dbm.getAccountByUsername(req.body.account)
             if (!account || account.login_method === 0) return res.json({retcode: statusCodes.error.LOGIN_FAILED, message: "Account does not exist.", data: null})
+            let rnd = JSON.parse(JSON.stringify(account.realname))
             if (cfg.verifyAccountPassword) {
                 let validatedpass = await validatePassword(account.password, req.body.password, true)
                 if (validatedpass === false) return res.json({retcode: statusCodes.error.LOGIN_FAILED, message: "Account password is invalid.", data: null})
@@ -27,7 +28,7 @@ module.exports = (function() {
             let data = {
                 device_grant_required: false,
                 safe_mobile_required: false,
-                realname_operation: (account.realname.name.length === undefined || account.realname.identity.length === undefined) ? ActionType.realname.BIND_NAME : ActionType.realname.NONE,
+                realname_operation: (rnd.name === null || rnd.identity === null) ? ActionType.realname.BIND_NAME : ActionType.realname.NONE,
                 realperson_required: false,
                 account: {
                     uid: `${account.account_id}`, name: `${account.username}`, email: `${account.email}`, mobile: "", is_email_verify: "0",
@@ -73,11 +74,12 @@ module.exports = (function() {
             sendLog('/api/verify').debug(`${JSON.stringify(req.body)}`)
             let account = await dbm.getAccountById(req.body.uid, 1)
             if (!account || !req.body.token || account.session_token !== req.body.token) return res.json({retcode: statusCodes.error.FAIL, message: "Game account cache information error."})
+            let rnd = JSON.parse(JSON.stringify(account.realname))
 
             let data = {
                 device_grant_required: false,
                 safe_mobile_required: false,
-                realname_operation: (!account.realname.name || !account.realname.identity) ? ActionType.realname.BIND_NAME : ActionType.realname.NONE,
+                realname_operation: (rnd.name === null || rnd.identity === null) ? ActionType.realname.BIND_NAME : ActionType.realname.NONE,
                 realperson_required: false,
                 account: {
                     uid: `${account.account_id}`, name: `${account.username}`, email: `${account.email}`, mobile: "", is_email_verify: "0",
@@ -122,7 +124,7 @@ module.exports = (function() {
             let account = await dbm.getAccountById(`${ldata.uid}`, (ldata.guest) ? 0 : 1)
             if (!account) return res.json({retcode: statusCodes.error.FAIL, message: "Account does not exist! Contact administrator if you think this is an issue."})
             if (!account.authorized_devices.includes(req.body.device) || account.session_token !== ldata.token) return res.json({retcode: statusCodes.error.FAIL, message: "Game account cache information error."})
-            if (!account.realname.name || !account.realname.identity && cfg.allowRealnameLogin) return res.json({retcode: statusCodes.error.FAIL, message: "Account verification required."})
+            if (account.realname.name === null || account.realname.identity === null && cfg.allowRealnameLogin) return res.json({retcode: statusCodes.error.FAIL, message: "Account verification required."})
             let token = (!ldata.guest) ? ldata.token/*Buffer.from(crypto.randomUUID().replaceAll("-", '')).toString('hex')*/ : "guest"
 
             let data = {
@@ -212,16 +214,21 @@ module.exports = (function() {
 
     login.post(`/:platform/combo/panda/qrcode/fetch`, async function(req, res) {
         try {
+            sendLog('/qrcode/fetch').debug(JSON.stringify(req.body))
             if (!cfg.allowQRCodeLogin) return res.json({retcode: statusCodes.error.FAIL, message: "QRCode login is disabled!"})
+
             let url;
-            let ticket = "testticket"
+            let expires = new Date().setHours(1, 0, 0).toString()
+            let ticket = Buffer.from(crypto.randomUUID().replaceAll("-", '')).toString('hex')
             if (cfg.socialLogin.discordQR.enabled) {
                 url = cfg.socialLogin.discordQR.url
             } else {
-                url = "/Api/login_by_qr"
+                url = `http://${cfg.serverAddress}:${cfg.serverPort}/Api/login_by_qr`
             }
 
-            res.json({retcode: statusCodes.success.RETCODE, message: "OK", data: {url: `${url}?expire=1000000\u0026ticket=${ticket}\u0026device=${req.body.device}`}})
+            await dbm.createQR(`${ticket}`, `${ActionType.qrode.INIT}`, `${req.body.device}`, `${expires}`)
+
+            res.json({retcode: statusCodes.success.RETCODE, message: "OK", data: {url: `${url}?expire=${expires}\u0026ticket=${ticket}\u0026device=${req.body.device}`}})
         } catch (e) {
             sendLog('Gate').error(e)
             res.json({retcode: statusCodes.error.FAIL, message: "An error occurred, try again later! If this error persist contact the server administrator."})
@@ -230,15 +237,35 @@ module.exports = (function() {
 
     login.post(`/:platform/combo/panda/qrcode/query`, async function(req, res) {
         try {
+            sendLog('/qrcode/query').debug(JSON.stringify(req.body))
+            let payload = {}
             if (!cfg.allowQRCodeLogin) return res.json({retcode: statusCodes.error.FAIL, message: "QRCode login is disabled!"})
-            /*let url;
-            if (cfg.socialLogin.discordQR.enabled) {
-                url = cfg.socialLogin.discordQR.url
-            } else {
-                url = "/Api/login_by_qr"
-            }*/
+            let qrd = await dbm.getQRByDeviceId(req.body.device, req.body.ticket)
+            if (!qrd) return res.json({retcode: statusCodes.error.FAIL, message: "Ticket cache information error."})
+            if (new Date(qrd.expires) < Date.now()) return res.json({retcode: statusCodes.error.LOGOUT_ERROR, message: `QRCode expired, generate a new one.`})
 
-            res.json({retcode: statusCodes.success.RETCODE, message: "OK", data: {stat: ActionType.qrode.INIT, payload: {} }})
+            if (qrd.state === ActionType.qrode.CONFIRMED) {
+                let account = await dbm.getAccountByDeviceId(req.body.device)
+                if (!account) return res.json({retcode: statusCodes.error.FAIL, message: "Account does not exist!"})
+                let rnd = JSON.parse(JSON.stringify(account.realname))
+
+                if (!account.authorized_devices.includes(req.body.device)) {
+                    account.authorized_devices.push(req.body.device)
+                    await dbm.updateAccountGrantDevicesById(account.account_id, account.authorized_devices)
+                }
+
+                let token = Buffer.from(crypto.randomUUID().replaceAll("-", '')).toString('hex')
+                await dbm.updateAccountById(account.account_id, "", token)
+
+                payload = {"proto": "Account",
+                    "raw": JSON.stringify({"uid": `${account.account_id}`, "name": `${account.username}`, "email": `${account.email}`,
+                        "is_email_verify": false, "realname": `${rnd.name}`, "identity_card": `${rnd.identity}`, "token": token, "country": "ZZ"}) }
+
+            } else {
+                payload = {}
+            }
+
+            res.json({retcode: statusCodes.success.RETCODE, message: "OK", data: {stat: qrd.state, payload: payload }})
         } catch (e) {
             sendLog('Gate').error(e)
             res.json({retcode: statusCodes.error.FAIL, message: "An error occurred, try again later! If this error persist contact the server administrator."})
