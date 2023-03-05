@@ -6,7 +6,7 @@ const {statusCodes, ActionType} = require('../utils/constants')
 const cfg = require('../config.json')
 const crypto = require('crypto')
 const {encryptPassword, validatePassword} = require("../managers/cryptManager");
-const {updateAccountById, updateAccountPasswordRstCodeById} = require("../managers/databaseManager");
+const {updateAccountPasswordRstCodeById} = require("../managers/databaseManager");
 
 module.exports = (function() {
     let reg = express.Router()
@@ -46,15 +46,18 @@ module.exports = (function() {
                 console.log('debug forget password code', verifycode)
 
                 res.json({code: statusCodes.success.WEB_STANDARD, data: {info: "forgetpassword_verifycodereq", msg: "Success"}})
-            } else if (req.body.state === ActionType.VERIFY_CODE_RESP) {
+            }
+
+            if (req.body.state === ActionType.VERIFY_CODE_RESP) {
                 let account = await dbm.getAccountByEmail(req.body.email)
                 if (!account) return res.json({code: statusCodes.error.FAIL, message: "Account with this email address does not exist!"})
-                if (await validatePassword(`${account.forget_ticket}`, `${req.body.code}`, false) === false) return res.json({code: statusCodes.error.FAIL, message: "Invalid verification code!"})
+                if (!await validatePassword(`${account.forget_ticket}`, `${req.body.code}`, false)) return res.json({code: statusCodes.error.FAIL, message: "Invalid verification code!"})
 
                 sendLog('Gate').info(`Account with email ${req.body.email} is attempting to reset account password.`)
                 res.json({code: statusCodes.success.WEB_STANDARD, data: {info: "forgetpassword_verifycoderesp", msg: "Success"}})
+            }
 
-            } else if (req.body.state === ActionType.RESET_PASSWORD) {
+            if (req.body.state === ActionType.RESET_PASSWORD) {
                 let account = await dbm.getAccountByEmail(req.body.email)
                 if (!account) return res.json({code: statusCodes.error.FAIL, message: "Account with this email address does not exist!"})
 
@@ -86,7 +89,7 @@ module.exports = (function() {
 
     reg.post(`/Api/login_by_qr`, async function (req, res) {
         try {
-            console.log()
+            console.log(req.body)
         } catch (e) {
             sendLog('Gate').error(e)
             res.json({retcode: statusCodes.error.FAIL, message: "An error occurred, try again later! If this error persist contact the server administrator."})

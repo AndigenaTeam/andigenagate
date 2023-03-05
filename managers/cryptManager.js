@@ -61,7 +61,7 @@ module.exports = {
 
     validatePassword(accountPassword, clientPassword, decrypt = true) {
         return new Promise((res, rej) => {
-            let decrypted =  (decrypt) ? module.exports.decryptPassword(`${keys.signingKey}`, Buffer.from(clientPassword, 'base64')).toString("utf-8") : clientPassword
+            let decrypted = (decrypt) ? module.exports.decryptPassword(`${keys.signingKey}`, Buffer.from(clientPassword, 'base64')).toString("utf-8") : clientPassword
             bcrypt.compare(decrypted, accountPassword).then(function(result) {
                 res(result)
             });

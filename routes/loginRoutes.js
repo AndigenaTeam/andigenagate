@@ -20,15 +20,23 @@ module.exports = (function() {
             let account = await dbm.getAccountByUsername(req.body.account)
             if (!account || account.login_method === 0) return res.json({retcode: statusCodes.error.LOGIN_FAILED, message: "Account does not exist.", data: null})
             let rnd = JSON.parse(JSON.stringify(account.realname))
+            let bindrealname = ActionType.realname.NONE
             if (cfg.verifyAccountPassword) {
                 let validatedpass = await validatePassword(account.password, req.body.password, true)
                 if (validatedpass === false) return res.json({retcode: statusCodes.error.LOGIN_FAILED, message: "Account password is invalid.", data: null})
+            }
+            if (rnd.name === null || rnd.identity === null) {
+                if (cfg.allowRealnameLogin) {
+                    bindrealname = ActionType.realname.BIND_NAME
+                } else {
+                    bindrealname = ActionType.realname.NONE
+                }
             }
 
             let data = {
                 device_grant_required: false,
                 safe_mobile_required: false,
-                realname_operation: (rnd.name === null || rnd.identity === null) ? ActionType.realname.BIND_NAME : ActionType.realname.NONE,
+                realname_operation: bindrealname,
                 realperson_required: false,
                 account: {
                     uid: `${account.account_id}`, name: `${account.username}`, email: `${account.email}`, mobile: "", is_email_verify: "0",
@@ -38,14 +46,14 @@ module.exports = (function() {
                     reactivate_ticket: "", area_code: "**", device_grant_ticket: "" }
             }
 
-            if (cfg.verifyAccountEmail && !account.email_verified) {
+            if (cfg.verifyAccountEmail && !account.email_verified || !account.authorized_devices.includes(req.headers['x-rpc-device_id'])) {
                 let verifytokend = parseInt(Buffer.from(crypto.randomBytes(3)).toString("hex"), 16).toString().substring(0, 6)
                 console.log('debug verify code', verifytokend)
 
                 let verifytoken = await encryptPassword(verifytokend)
                 await dbm.updateAccountByUsername(`${req.body.account}`, `${verifytoken}`)
-                data.device_grant_required = true;
-                data.account.device_grant_ticket = `${verifytoken}`;
+                data.device_grant_required = true
+                data.account.device_grant_ticket = `${verifytoken}`
 
                 res.json({ retcode: statusCodes.success.RETCODE, message: "OK", data: data })
             } else if (!cfg.verifyAccountEmail || account.email_verified && account.realname.name !== "" || account.realname.identity !== "") {
@@ -73,13 +81,21 @@ module.exports = (function() {
         try {
             sendLog('/api/verify').debug(`${JSON.stringify(req.body)}`)
             let account = await dbm.getAccountById(req.body.uid, 1)
-            if (!account || !req.body.token || account.session_token !== req.body.token) return res.json({retcode: statusCodes.error.FAIL, message: "Game account cache information error."})
+            let bindrealname = ActionType.realname.NONE
+            if (!account || account.session_token !== req.body.token) return res.json({retcode: statusCodes.error.FAIL, message: "Game account cache information error."})
             let rnd = JSON.parse(JSON.stringify(account.realname))
+            if (rnd.name === null || rnd.identity === null) {
+                if (cfg.allowRealnameLogin) {
+                    bindrealname = ActionType.realname.BIND_NAME
+                } else {
+                    bindrealname = ActionType.realname.NONE
+                }
+            }
 
             let data = {
                 device_grant_required: false,
                 safe_mobile_required: false,
-                realname_operation: (rnd.name === null || rnd.identity === null) ? ActionType.realname.BIND_NAME : ActionType.realname.NONE,
+                realname_operation: bindrealname,
                 realperson_required: false,
                 account: {
                     uid: `${account.account_id}`, name: `${account.username}`, email: `${account.email}`, mobile: "", is_email_verify: "0",
@@ -89,14 +105,14 @@ module.exports = (function() {
                     reactivate_ticket: "", area_code: "**", device_grant_ticket: "" }
             }
 
-            if (!account.authorized_devices.includes(req.headers['x-rpc-device_id'])) {
+            if (!account.authorized_devices.includes(req.headers['x-rpc-device_id']) && account.email_verified || !account.authorized_devices.includes(req.headers['x-rpc-device_id']) && !account.email_verified) {
                 let verifytokend = parseInt(Buffer.from(crypto.randomBytes(3)).toString("hex"), 16).toString().substring(0, 6)
                 console.log('debug verify code', verifytokend)
 
                 let verifytoken = await encryptPassword(verifytokend)
                 await dbm.updateAccountById(`${req.body.uid}`, `${verifytoken}`, "")
-                data.device_grant_required = true;
-                data.account.device_grant_ticket = `${verifytoken}`;
+                data.device_grant_required = true
+                data.account.device_grant_ticket = `${verifytoken}`
 
                 res.json({ retcode: statusCodes.success.RETCODE, message: "OK", data: data })
             } else {
@@ -123,7 +139,7 @@ module.exports = (function() {
             let ldata = JSON.parse(req.body.data)
             let account = await dbm.getAccountById(`${ldata.uid}`, (ldata.guest) ? 0 : 1)
             if (!account) return res.json({retcode: statusCodes.error.FAIL, message: "Account does not exist! Contact administrator if you think this is an issue."})
-            if (!account.authorized_devices.includes(req.body.device) || account.session_token !== ldata.token) return res.json({retcode: statusCodes.error.FAIL, message: "Game account cache information error."})
+            if (account.session_token !== ldata.token) return res.json({retcode: statusCodes.error.FAIL, message: "Game account cache information error."})
             if (account.realname.name === null || account.realname.identity === null && cfg.allowRealnameLogin) return res.json({retcode: statusCodes.error.FAIL, message: "Account verification required."})
             let token = (!ldata.guest) ? ldata.token/*Buffer.from(crypto.randomUUID().replaceAll("-", '')).toString('hex')*/ : "guest"
 
@@ -144,7 +160,6 @@ module.exports = (function() {
 
             } else if (!cfg.verifyAccountEmail || ldata.guest) {
                 await dbm.updateAccountById(`${ldata.uid}`, "", `${token}`)
-
                 await dbm.updateAccountGrantDevicesById(ldata.uid, account.authorized_devices)
 
                 sendLog("Gate").info(`${ldata.guest ? "Guest account" : "Account"} with UID ${ldata.uid} (platform: ${req.params.platform}) logged in successfully.`)

@@ -61,7 +61,7 @@ module.exports = {
                 email_verified: emailVerified,
                 grant_ticket: "",
                 forget_ticket: "",
-                session_token: `${sessionToken}`,
+                session_token: sessionToken,
                 authorized_devices: authorizedDevices,
                 realname: {name: null, identity: null},
         }).save(function (err, doc) {

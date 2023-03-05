@@ -66,7 +66,7 @@ module.exports = (function() {
             console.log('/api/actionTicket', req.body)
             let account = await dbm.getAccountById(req.body.account_id, 1)
             if (!account) return res.json({retcode: statusCodes.error.LOGIN_FAILED, message: "Ticket cache information error."})
-            if (!account.authorized_devices.includes(req.headers['x-rpc-device_id']) || !req.body.game_token || account.session_token !== req.body.game_token) return res.json({retcode: statusCodes.error.LOGIN_FAILED, message: "Game cache information error."})
+            if (/*!account.authorized_devices.includes(req.headers['x-rpc-device_id']) || */!req.body.game_token || account.session_token !== req.body.game_token) return res.json({retcode: statusCodes.error.LOGIN_FAILED, message: "Game cache information error."})
 
             let verifytoken = await encryptPassword(parseInt(Buffer.from(crypto.randomBytes(3)).toString("hex"), 16).toString().substring(0, 6))
 
