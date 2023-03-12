@@ -2,7 +2,7 @@ const express = require('express')
 const cfg = require('../config.json')
 const {sendLog} = require('../utils/logUtils')
 const dbm = require('../managers/databaseManager')
-const {statusCodes, ActionType} = require('../utils/constants')
+const {statusCodes, ActionType, EMAIL_REGEX} = require('../utils/constants')
 const {validatePassword, encryptPassword} = require('../managers/cryptManager')
 const crypto = require('crypto')
 
@@ -16,9 +16,9 @@ module.exports = (function() {
 
     login.post(`/:platform/mdk/shield/api/login`, async function (req, res) {
         try {
-            sendLog('/api/login').debug(`${JSON.stringify(req.body)}`)
-            let account = await dbm.getAccountByUsername(req.body.account)
-            if (!account || account.login_method === 0) return res.json({retcode: statusCodes.error.LOGIN_FAILED, message: "Account does not exist.", data: null})
+            sendLog('/shield/api/login').debug(`${JSON.stringify(req.body)}`)
+            let account = (EMAIL_REGEX.test(req.body.account)) ? await dbm.getAccountByEmail(req.body.account) : await dbm.getAccountByUsername(req.body.account)
+            if (account === null || account.login_method === 0) return res.json({retcode: statusCodes.error.LOGIN_FAILED, message: "Account does not exist.", data: null})
             let rnd = JSON.parse(JSON.stringify(account.realname))
             let bindrealname = ActionType.realname.NONE
             if (cfg.verifyAccountPassword) {
@@ -51,7 +51,7 @@ module.exports = (function() {
                 console.log('debug verify code', verifytokend)
 
                 let verifytoken = await encryptPassword(verifytokend)
-                await dbm.updateAccountByUsername(`${req.body.account}`, `${verifytoken}`)
+                await dbm.updateAccountByUsername(`${account.username}`, `${verifytoken}`)
                 data.device_grant_required = true
                 data.account.device_grant_ticket = `${verifytoken}`
 
@@ -79,10 +79,10 @@ module.exports = (function() {
 
     login.post(`/:platform/mdk/shield/api/verify`, async function (req, res) {
         try {
-            sendLog('/api/verify').debug(`${JSON.stringify(req.body)}`)
+            sendLog('/shield/api/verify').debug(`${JSON.stringify(req.body)}`)
             let account = await dbm.getAccountById(req.body.uid, 1)
             let bindrealname = ActionType.realname.NONE
-            if (!account || account.session_token !== req.body.token) return res.json({retcode: statusCodes.error.FAIL, message: "Game account cache information error."})
+            if (account === null || account.session_token !== req.body.token) return res.json({retcode: statusCodes.error.FAIL, message: "Game account cache information error."})
             let rnd = JSON.parse(JSON.stringify(account.realname))
             if (rnd.name === null || rnd.identity === null) {
                 if (cfg.allowRealnameLogin) {
@@ -135,10 +135,10 @@ module.exports = (function() {
 
     login.post(`/:platform/combo/granter/login/v2/login`, async function (req, res) {
         try {
-            sendLog('/granter/v2/login').debug(`${JSON.stringify(req.body)}`)
+            sendLog('/granter/login/v2/login').debug(`${JSON.stringify(req.body)}`)
             let ldata = JSON.parse(req.body.data)
             let account = await dbm.getAccountById(`${ldata.uid}`, (ldata.guest) ? 0 : 1)
-            if (!account) return res.json({retcode: statusCodes.error.FAIL, message: "Account does not exist! Contact administrator if you think this is an issue."})
+            if (account === null) return res.json({retcode: statusCodes.error.FAIL, message: "Account does not exist! Contact administrator if you think this is an issue."})
             if (account.session_token !== ldata.token) return res.json({retcode: statusCodes.error.FAIL, message: "Game account cache information error."})
             if (account.realname.name === null || account.realname.identity === null && cfg.allowRealnameLogin) return res.json({retcode: statusCodes.error.FAIL, message: "Account verification required."})
             let token = (!ldata.guest) ? ldata.token/*Buffer.from(crypto.randomUUID().replaceAll("-", '')).toString('hex')*/ : "guest"
@@ -188,7 +188,7 @@ module.exports = (function() {
                 guest_id: ""
             }
 
-            if (!account) {
+            if (account === null) {
                 let uid = Math.floor(1000 + Math.random() * 9000)
                 let authd = []
                 authd.push(req.body.device)
@@ -213,7 +213,7 @@ module.exports = (function() {
 
     login.post(`/:platform/combo/granter/login/beforeVerify`, async function (req, res) {
         try {
-            console.log('/login/beforeVerify', req.body)
+            console.log('/granter/login/beforeVerify', req.body)
 
             res.json({retcode: statusCodes.success.RETCODE, message: "OK", data: {is_heartbeat_required: false, is_realname_required: cfg.allowRealnameLogin, is_guardian_required: false}})
         } catch (e) {
@@ -229,7 +229,7 @@ module.exports = (function() {
 
     login.post(`/:platform/combo/panda/qrcode/fetch`, async function(req, res) {
         try {
-            sendLog('/qrcode/fetch').debug(JSON.stringify(req.body))
+            sendLog('/panda/qrcode/fetch').debug(JSON.stringify(req.body))
             if (!cfg.allowQRCodeLogin) return res.json({retcode: statusCodes.error.FAIL, message: "QRCode login is disabled!"})
 
             let url;
@@ -252,7 +252,7 @@ module.exports = (function() {
 
     login.post(`/:platform/combo/panda/qrcode/query`, async function(req, res) {
         try {
-            sendLog('/qrcode/query').debug(JSON.stringify(req.body))
+            sendLog('/panda/qrcode/query').debug(JSON.stringify(req.body))
             let payload = {}
             if (!cfg.allowQRCodeLogin) return res.json({retcode: statusCodes.error.FAIL, message: "QRCode login is disabled!"})
             let qrd = await dbm.getQRByDeviceId(req.body.device, req.body.ticket)

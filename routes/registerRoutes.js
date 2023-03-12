@@ -37,7 +37,7 @@ module.exports = (function() {
             sendLog('/Api/forget_by_email').debug(`${JSON.stringify({email: req.body.email})}`)
             if (req.body.email && req.body.state === ActionType.VERIFY_CODE_REQ) {
                 let account = await dbm.getAccountByEmail(req.body.email)
-                if (!account) return res.json({code: statusCodes.error.FAIL, message: "Account with this email address does not exist!"})
+                if (account === null) return res.json({code: statusCodes.error.FAIL, message: "Account with this email address does not exist!"})
                 sendLog('Gate').info(`Account with email ${req.body.email} is requesting code to reset password.`)
 
                 let verifycode = parseInt(Buffer.from(crypto.randomBytes(3)).toString("hex"), 16).toString().substring(0, 6)
@@ -50,7 +50,7 @@ module.exports = (function() {
 
             if (req.body.state === ActionType.VERIFY_CODE_RESP) {
                 let account = await dbm.getAccountByEmail(req.body.email)
-                if (!account) return res.json({code: statusCodes.error.FAIL, message: "Account with this email address does not exist!"})
+                if (account === null) return res.json({code: statusCodes.error.FAIL, message: "Account with this email address does not exist!"})
                 if (!await validatePassword(`${account.forget_ticket}`, `${req.body.code}`, false)) return res.json({code: statusCodes.error.FAIL, message: "Invalid verification code!"})
 
                 sendLog('Gate').info(`Account with email ${req.body.email} is attempting to reset account password.`)
@@ -59,7 +59,7 @@ module.exports = (function() {
 
             if (req.body.state === ActionType.RESET_PASSWORD) {
                 let account = await dbm.getAccountByEmail(req.body.email)
-                if (!account) return res.json({code: statusCodes.error.FAIL, message: "Account with this email address does not exist!"})
+                if (account === null) return res.json({code: statusCodes.error.FAIL, message: "Account with this email address does not exist!"})
 
                 let token = Buffer.from(crypto.randomUUID().replaceAll('-', '')).toString("hex")
                 let newPassword = await crm.encryptPassword(req.body.password)

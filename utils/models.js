@@ -29,16 +29,16 @@ module.exports = {
             password: { type: String, min: 8 },
             banned: {type: Boolean},
             operator: {type: Boolean},
-            login_method: {type: Number, min: 0, max: 3},
-            last_version: {type: String, default: '' },
+            login_method: {type: Number, min: 0, max: 3 },
+            last_version: {type: String, default: null },
             role: {type: String},
             email_verified: {type: Boolean, default: false},
-            grant_ticket: {type: String, default: ""},
-            forget_ticket: {Type: String, default: ""},
-            session_token: {type: String, default: ""},
+            grant_ticket: {type: String},
+            forget_ticket: {Type: String},
+            session_token: {type: String},
             authorized_devices: {type: Array, default: []},
-            qrdata: {ticket: {Type: String, default: ""}, state: {Type: String, default: ""}},
-            realname: {name: {Type: String, default: ""}, identity: {Type: String, default: ""}}
+            qrdata: {ticket: {Type: String}, state: {Type: String}},
+            realname: {name: {Type: String}, identity: {Type: String}}
             //game_accounts: {type: Object, default: {}}
         });
     }

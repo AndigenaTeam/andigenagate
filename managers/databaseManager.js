@@ -27,20 +27,21 @@ module.exports = {
 
     populateDatabaseDefaults() {
         return new Promise(async (res, rej) => {
-            rolemodel.countDocuments({name: 'admin'}, function (err, count) {
-                if (err) return rej(err)
+            rolemodel.countDocuments({name: 'admin'}).then(count => {
                 if (count === 0) {
-                    new rolemodel({role_id: `${crypto.randomInt(1000, 99999999)}`, name: `admin`, prefix: `&6[&cAdmin&6]&r `, created_by: `69`, permissions: [`*`]}).save(function (err) {
+                    new rolemodel({role_id: `${crypto.randomInt(1000, 99999999)}`, name: `admin`, prefix: `&6[&cAdmin&6]&r `, created_by: `69`, permissions: [`*`]}).save(function (err, doc) {
                         if (err) return rej(err)
                         sendLog('database').debug(`Creating default role "admin"...`)
                     })
-                    new rolemodel({role_id: `00001`, name: `default`, prefix: ``, created_by: `69`, permissions: []}).save(function (err) {
+                    new rolemodel({role_id: `${crypto.randomInt(1000, 99999999)}`, name: `default`, prefix: ``, created_by: `69`, permissions: []}).save(function (err, doc) {
                         if (err) return rej(err)
                         sendLog('database').debug(`Creating default role "default"...`)
                     })
                     sendLog("Database").info(`Populated default database entries successfully.`)
                 }
-            });
+            }).catch(err => {
+                return rej(err)
+            })
         })
     },
 
@@ -48,7 +49,7 @@ module.exports = {
 
     createAccount(accountId = 0, username = '', email = '', password = '', loginMethod = 1, emailVerified = false, sessionToken = "", authorizedDevices = []) {
         return new Promise(async (res, rej) => {
-            new accmodel({
+            await new accmodel({
                 account_id: `${accountId}`,
                 username: `${username}`,
                 email: `${email}`,
@@ -64,146 +65,177 @@ module.exports = {
                 session_token: sessionToken,
                 authorized_devices: authorizedDevices,
                 realname: {name: null, identity: null},
-        }).save(function (err, doc) {
-            if (err) return rej(err)
+            }).save().then(doc => {
                 res(doc._id)
                 sendLog('Database').info(`User ${username} (${accountId}) registered/created successfully.`)
+            }).catch(err => {
+                rej(err)
             })
         })
     },
 
     getAccountByUsername(username = "") {
-        return new Promise(async (res, rej) => {
-            accmodel.findOne({username: `${username}`}, function (err, resp) {
-                if (err) rej(err)
+        return new Promise(async (res) => {
+            let resp = await accmodel.findOne({username: `${username}`})
+            if (resp) {
                 res(resp)
-            })
+            } else {
+                res(resp)
+            }
         })
     },
 
     getAccountById(accountId = "", loginMethod = 1) {
-        return new Promise(async (res, rej) => {
-            accmodel.findOne({account_id: `${accountId}`, login_method: loginMethod}, function (err, resp) {
-                if (err) rej(err)
+        return new Promise(async (res) => {
+           let resp = await accmodel.findOne({account_id: `${accountId}`, login_method: loginMethod})
+            if (resp) {
                 res(resp)
-            })
+            } else {
+                res(resp)
+            }
         })
     },
 
     getAccountByEmail(accountEmail = "") {
-        return new Promise(async (res, rej) => {
-            accmodel.findOne({email: `${accountEmail}`}, function (err, resp) {
-                if (err) rej(err)
+        return new Promise(async (res) => {
+            let resp = await accmodel.findOne({email: `${accountEmail}`})
+            if (resp) {
                 res(resp)
-            })
+            } else {
+                res(resp)
+            }
         })
     },
 
     getAccountByGrantTicket(grantTicket = "", loginMethod = 1) {
-        return new Promise(async (res, rej) => {
-            accmodel.findOne({grant_ticket: `${grantTicket}`, login_method: loginMethod}, function (err, resp) {
-                if (err) rej(err)
+        return new Promise(async (res) => {
+            let resp = await accmodel.findOne({grant_ticket: `${grantTicket}`, login_method: loginMethod})
+            if (resp) {
                 res(resp)
-            })
+            } else {
+                res(resp)
+            }
         })
     },
 
     getAccountByDeviceId(deviceId = "", loginMethod = 0) {
-        return new Promise(async (res, rej) => {
-            accmodel.findOne({authorized_devices: `${deviceId}`, login_method: loginMethod}, function (err, resp) {
-                if (err) rej(err)
+        return new Promise(async (res) => {
+            let resp = await accmodel.findOne({authorized_devices: `${deviceId}`, login_method: loginMethod})
+            if (resp) {
                 res(resp)
-            })
+            } else {
+                res(resp)
+            }
         })
     },
 
     updateAccountById(accountId = "", grantTicket = "", sessionToken = "") {
-        return new Promise(async (res, rej) => {
-            accmodel.updateOne({account_id: `${accountId}`}, {session_token: `${sessionToken}`, grant_ticket: `${grantTicket}`}, function (err, resp) {
-                if (err) rej(err)
+        return new Promise(async (res) => {
+            let resp = await accmodel.updateOne({account_id: `${accountId}`}, {session_token: `${sessionToken}`, grant_ticket: `${grantTicket}`})
+            if (resp) {
                 res(resp)
-            })
+            } else {
+                res(resp)
+            }
         })
     },
 
     updateAccountVerifiedByEmail(accountEmail = "", verifiedEmail = false) {
-        return new Promise(async (res, rej) => {
-            accmodel.updateOne({email: `${accountEmail}`}, {email_verified: `${verifiedEmail}`}, function (err, resp) {
-                if (err) rej(err)
+        return new Promise(async (res) => {
+            let resp = await accmodel.updateOne({email: `${accountEmail}`}, {email_verified: `${verifiedEmail}`})
+            if (resp) {
                 res(resp)
-            })
+            } else {
+                res(resp)
+            }
         })
     },
 
     updateAccountPasswordByEmail(accountEmail = "", newPassword = "") {
-        return new Promise(async (res, rej) => {
-            accmodel.updateOne({email: `${accountEmail}`}, {password: newPassword}, function (err, resp) {
-                if (err) rej(err)
+        return new Promise(async (res) => {
+            let resp = await accmodel.updateOne({email: `${accountEmail}`}, {password: newPassword})
+            if (resp) {
                 res(resp)
-            })
+            } else {
+                res(resp)
+            }
         })
     },
 
     updateAccountByUsername(accountUsername = "", grantTicket = "") {
-        return new Promise(async (res, rej) => {
-            accmodel.updateOne({username: `${accountUsername}`}, {grant_ticket: `${grantTicket}`}, function (err, resp) {
-                if (err) rej(err)
+        return new Promise(async (res) => {
+            let resp = await accmodel.updateOne({username: `${accountUsername}`}, {grant_ticket: `${grantTicket}`})
+            if (resp) {
                 res(resp)
-            })
+            } else {
+                res(resp)
+            }
         })
     },
 
     updateAccountByGrantTicket(grantTicket = "", emailVerified = false) {
-        return new Promise(async (res, rej) => {
-            accmodel.updateOne({grant_ticket: `${grantTicket}`}, {email_verified: emailVerified}, function (err, resp) {
-                if (err) rej(err)
+        return new Promise(async (res) => {
+            let resp = await accmodel.updateOne({grant_ticket: `${grantTicket}`}, {email_verified: emailVerified})
+            if (resp) {
                 res(resp)
-            })
+            } else {
+                res(resp)
+            }
         })
     },
 
     updateAccountRealnameById(accountId = "", realName = {}) {
-        return new Promise(async (res, rej) => {
-            accmodel.updateOne({account_id: `${accountId}`}, {realname: realName}, function (err, resp) {
-                if (err) rej(err)
+        return new Promise(async (res) => {
+            let resp = await accmodel.updateOne({account_id: `${accountId}`}, {realname: realName})
+            if (resp) {
                 res(resp)
-            })
+            } else {
+                res(resp)
+            }
         })
     },
 
     updateAccountGrantDevicesByGrantTicket(grantTicket = "", authorizedDevices = []) {
-        return new Promise(async (res, rej) => {
-            accmodel.updateOne({grant_ticket: `${grantTicket}`}, {authorized_devices: authorizedDevices}, function (err, resp) {
-                if (err) rej(err)
+        return new Promise(async (res) => {
+            let resp = await accmodel.updateOne({grant_ticket: `${grantTicket}`}, {authorized_devices: authorizedDevices})
+            if (resp) {
                 res(resp)
-            })
+            } else {
+                res(resp)
+            }
         })
     },
 
     updateAccountGrantDevicesById(accountId = "", authorizedDevices = []) {
-        return new Promise(async (res, rej) => {
-            accmodel.updateOne({account_id: `${accountId}`}, {authorized_devices: authorizedDevices}, function (err, resp) {
-                if (err) rej(err)
+        return new Promise(async (res) => {
+            let resp = await accmodel.updateOne({account_id: `${accountId}`}, {authorized_devices: authorizedDevices})
+            if (resp) {
                 res(resp)
-            })
+            } else {
+                res(resp)
+            }
         })
     },
 
     updateAccountSessionTokenByGrantTicket(grantTicket = "", sessionToken = "") {
-        return new Promise(async (res, rej) => {
-            accmodel.updateOne({grant_ticket: `${grantTicket}`}, {session_token: sessionToken}, function (err, resp) {
-                if (err) rej(err)
+        return new Promise(async (res) => {
+            let resp = await accmodel.updateOne({grant_ticket: `${grantTicket}`}, {session_token: sessionToken})
+            if (resp) {
                 res(resp)
-            })
+            } else {
+                res(resp)
+            }
         })
     },
 
     updateAccountPasswordRstCodeById(accountId, emailCode = "") {
-        return new Promise(async (res, rej) => {
-            accmodel.updateOne({account_id: `${accountId}`}, {forget_ticket: emailCode}, function (err, resp) {
-                if (err) rej(err)
+        return new Promise(async (res) => {
+            let resp = await accmodel.updateOne({account_id: `${accountId}`}, {forget_ticket: emailCode})
+            if (resp) {
                 res(resp)
-            })
+            } else {
+                res(resp)
+            }
         })
     },
 
@@ -217,38 +249,44 @@ module.exports = {
                 prefix: `${rolePrefix}`,
                 created_by: `${roleCreatorId}`,
                 permissions: rolePermissions
-            }).save(function (err, doc) {
-                if (err) return rej(err)
-                console.log('created')
+            }).save().then(doc => {
                 sendLog('Database').info(`Role ${roleName} (${doc.role_id}) created successfully.`)
+            }).catch(err => {
+                rej(err)
             })
         })
     },
 
     getRoleByName(roleName = "") {
         return new Promise(async (res, rej) => {
-            rolemodel.findOne({name: `${roleName}`}, function (err, resp) {
-                if (err) rej(err)
+           let resp = await rolemodel.findOne({name: `${roleName}`})
+            if (resp) {
                 res(resp)
-            })
+            } else {
+                res(resp)
+            }
         })
     },
 
     getRoleById(roleId = "") {
         return new Promise(async (res, rej) => {
-            rolemodel.findOne({role_id: `${roleId}`}, function (err, resp) {
-                if (err) rej(err)
+            let resp = await rolemodel.findOne({role_id: `${roleId}`})
+            if (resp) {
                 res(resp)
-            })
+            } else {
+                res(resp)
+            }
         })
     },
 
     getRoleByCreator(creatorId = "") {
         return new Promise(async (res, rej) => {
-            rolemodel.findOne({created_by: `${creatorId}`}, function (err, resp) {
-                if (err) rej(err)
+            let resp = await rolemodel.findOne({created_by: `${creatorId}`})
+            if (resp) {
                 res(resp)
-            })
+            } else {
+                res(resp)
+            }
         })
     },
 
@@ -261,30 +299,35 @@ module.exports = {
                 state: state,
                 deviceId: deviceId,
                 expires: expires
-            }).save(function (err, doc) {
-                if (err) return rej(err)
+            }).save().then(doc => {
                 res(doc._id)
                 console.log(doc)
                 //sendLog('Database').info(`User ${username} (${accountId}) registered/created successfully.`)
+            }).catch(err => {
+                rej(err)
             })
         })
     },
 
     getQRByDeviceId(deviceId, ticket) {
         return new Promise(async (res, rej) => {
-            qrloginmodel.findOne({deviceId: `${deviceId}`, ticket: ticket}, function (err, resp) {
-                if (err) rej(err)
+            let resp = await qrloginmodel.findOne({deviceId: `${deviceId}`, ticket: ticket})
+            if (resp) {
                 res(resp)
-            })
+            } else {
+                res(resp)
+            }
         })
     },
 
     updateQRByDeviceId(deviceId = "", ticket = "", state = "") {
         return new Promise(async (res, rej) => {
-            qrloginmodel.updateOne({deviceId: `${deviceId}`, ticket: ticket}, {state: state}, function (err, resp) {
-                if (err) rej(err)
+            let resp = await qrloginmodel.updateOne({deviceId: `${deviceId}`, ticket: ticket}, {state: state})
+            if (resp) {
                 res(resp)
-            })
+            } else {
+                res(resp)
+            }
         })
     },
 }

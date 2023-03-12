@@ -3,10 +3,11 @@ const express = require('express')
 const bodyParser = require("body-parser");
 const http = express()
 
-const {sendLog} = require('./utils/logUtils')
+const {sendLog, archiveOldLogs} = require('./utils/logUtils')
 const {createFoldersAndConfigs} = require('./utils/configUtils')
 const db = require('./managers/databaseManager')
 
+archiveOldLogs().then(() => {})
 createFoldersAndConfigs()
 const cfg = require('./config.json')
 

@@ -65,8 +65,8 @@ module.exports = (function() {
         try {
             console.log('/api/actionTicket', req.body)
             let account = await dbm.getAccountById(req.body.account_id, 1)
-            if (!account) return res.json({retcode: statusCodes.error.LOGIN_FAILED, message: "Ticket cache information error."})
-            if (/*!account.authorized_devices.includes(req.headers['x-rpc-device_id']) || */!req.body.game_token || account.session_token !== req.body.game_token) return res.json({retcode: statusCodes.error.LOGIN_FAILED, message: "Game cache information error."})
+            if (account === null) return res.json({retcode: statusCodes.error.LOGIN_FAILED, message: "Ticket cache information error."})
+            if (!req.body.game_token || account.session_token !== req.body.game_token) return res.json({retcode: statusCodes.error.LOGIN_FAILED, message: "Game cache information error."})
 
             let verifytoken = await encryptPassword(parseInt(Buffer.from(crypto.randomBytes(3)).toString("hex"), 16).toString().substring(0, 6))
 
@@ -109,7 +109,7 @@ module.exports = (function() {
         try {
             sendLog('/api/bindRealname').debug(`${JSON.stringify(req.body)}`)
             let account = await dbm.getAccountByGrantTicket(`${req.body.ticket}`)
-            if (!account) return res.json({retcode: statusCodes.error.FAIL, message: "Ticket cache information error."})
+            if (account === null) return res.json({retcode: statusCodes.error.FAIL, message: "Ticket cache information error."})
             let rnd = JSON.parse(JSON.stringify(account.realname))
             if (rnd.name !== null && rnd.identity !== null) return res.json({retcode: statusCodes.error.FAIL, message: "Account already verified"})
 
