@@ -4,6 +4,9 @@ const cfg = require('../config.json')
 const {sendLog} = require("./logUtils");
 
 module.exports = {
+    /**
+     * Creates default config/folder if missing on startup.
+     */
     createFoldersAndConfigs() {
         if (!existsSync(`./config.json`)) {
             writeFileSync(`./config.json`, Buffer.from(JSON.stringify(constants.DEFAULT_CONFIG, null, 2)).toString("utf-8"))
@@ -37,6 +40,12 @@ module.exports = {
 
     },
 
+    /**
+     * Returns client string from clientId.
+     *
+     * @param {Number} clientId ID of the client.
+     * @return {String} Client by String.
+     */
     clientTypeFromClientId(clientId) {
         switch (clientId) {
             case constants.ClientType.Editor:
@@ -73,6 +82,9 @@ module.exports = {
         }
     },
 
+    /**
+     * Sets login screen scene depending on config setting.
+     */
     getSceneFromSettings() {
         if (cfg.disableRegistration) {
             return constants.SceneType.Temple;

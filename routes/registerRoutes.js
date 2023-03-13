@@ -5,8 +5,6 @@ const crm = require('../managers/cryptManager')
 const {statusCodes, ActionType} = require('../utils/constants')
 const cfg = require('../config.json')
 const crypto = require('crypto')
-const {encryptPassword, validatePassword} = require("../managers/cryptManager");
-const {updateAccountPasswordRstCodeById} = require("../managers/databaseManager");
 
 module.exports = (function() {
     let reg = express.Router()
@@ -41,8 +39,8 @@ module.exports = (function() {
                 sendLog('Gate').info(`Account with email ${req.body.email} is requesting code to reset password.`)
 
                 let verifycode = parseInt(Buffer.from(crypto.randomBytes(3)).toString("hex"), 16).toString().substring(0, 6)
-                let vcenc = await encryptPassword(verifycode)
-                await updateAccountPasswordRstCodeById(account.account_id, vcenc)
+                let vcenc = await crm.encryptPassword(verifycode)
+                await dbm.updateAccountPasswordRstCodeById(account.account_id, vcenc)
                 console.log('debug forget password code', verifycode)
 
                 res.json({code: statusCodes.success.WEB_STANDARD, data: {info: "forgetpassword_verifycodereq", msg: "Success"}})
@@ -51,7 +49,7 @@ module.exports = (function() {
             if (req.body.state === ActionType.VERIFY_CODE_RESP) {
                 let account = await dbm.getAccountByEmail(req.body.email)
                 if (account === null) return res.json({code: statusCodes.error.FAIL, message: "Account with this email address does not exist!"})
-                if (!await validatePassword(`${account.forget_ticket}`, `${req.body.code}`, false)) return res.json({code: statusCodes.error.FAIL, message: "Invalid verification code!"})
+                if (!await crm.validatePassword(`${account.forget_ticket}`, `${req.body.code}`, false)) return res.json({code: statusCodes.error.FAIL, message: "Invalid verification code!"})
 
                 sendLog('Gate').info(`Account with email ${req.body.email} is attempting to reset account password.`)
                 res.json({code: statusCodes.success.WEB_STANDARD, data: {info: "forgetpassword_verifycoderesp", msg: "Success"}})

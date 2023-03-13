@@ -2,13 +2,19 @@ const mongoose = require('mongoose')
 const crypto = require('crypto')
 const {sendLog} = require("../utils/logUtils")
 const models = require('../utils/models')
-const {ActionType} = require("../utils/constants");
+const {ActionType} = require("../utils/constants")
 
 const accmodel = new mongoose.model('accountModel', models.accountSchema(), 'account')
 const rolemodel = new mongoose.model('roleModel', models.roleSchema(), 'roles')
 const qrloginmodel = new mongoose.model("qrLoginModel", models.qrLoginSchema(), "qrdata")
 
 module.exports = {
+    /**
+     * Initialize connection to MongoDB database.
+     *
+     * @param {string} url Database connection url.
+     * @return {conn} MongoDB database connection.
+     */
     connect(url = process.env.DB_URL) {
         mongoose.connect(`${url}`)
         const conn = mongoose.connection
@@ -25,6 +31,9 @@ module.exports = {
         return conn;
     },
 
+    /**
+     * Populates database with default values.
+     */
     populateDatabaseDefaults() {
         return new Promise(async (res, rej) => {
             rolemodel.countDocuments({name: 'admin'}).then(count => {
@@ -47,6 +56,19 @@ module.exports = {
 
     // ===================== ACCOUNT =====================
 
+    /**
+     * Create new gateserver account.
+     *
+     * @param {Number} accountId UID of the account.
+     * @param {String} username Username of the account.
+     * @param {String} email Email of the account.
+     * @param {String} password Account password, will be stored encrypted.
+     * @param {Number} loginMethod Method account uses to log in.
+     * @param {Boolean} emailVerified Is account email verified (shows email verification grant if false).
+     * @param {String} sessionToken Session token of the made account.
+     * @param {Array} authorizedDevices List of deviceIds allowed to access this account.
+     * @return {Promise} Creates new account.
+     */
     createAccount(accountId = 0, username = '', email = '', password = '', loginMethod = 1, emailVerified = false, sessionToken = "", authorizedDevices = []) {
         return new Promise(async (res, rej) => {
             await new accmodel({
@@ -55,9 +77,7 @@ module.exports = {
                 email: `${email}`,
                 password: `${password}`,
                 banned: false,
-                operator: false,
                 login_method: loginMethod,
-                last_version: "",
                 role: "00001",
                 email_verified: emailVerified,
                 grant_ticket: "",
@@ -74,6 +94,12 @@ module.exports = {
         })
     },
 
+    /**
+     * Retrieve account by username.
+     *
+     * @param {String} username Username of the account.
+     * @return {Promise} Account data.
+     */
     getAccountByUsername(username = "") {
         return new Promise(async (res) => {
             let resp = await accmodel.findOne({username: `${username}`})
@@ -85,6 +111,13 @@ module.exports = {
         })
     },
 
+    /**
+     * Retrieve account by UID.
+     *
+     * @param {String} accountId UID of the account.
+     * @param {Number} loginMethod Filter accounts that are using specified login method.
+     * @return {Promise} Account data.
+     */
     getAccountById(accountId = "", loginMethod = 1) {
         return new Promise(async (res) => {
            let resp = await accmodel.findOne({account_id: `${accountId}`, login_method: loginMethod})
@@ -96,6 +129,12 @@ module.exports = {
         })
     },
 
+    /**
+     * Retrieve account by Email address.
+     *
+     * @param {String} accountEmail Email address of the account.
+     * @return {Promise} Account data.
+     */
     getAccountByEmail(accountEmail = "") {
         return new Promise(async (res) => {
             let resp = await accmodel.findOne({email: `${accountEmail}`})
@@ -107,6 +146,13 @@ module.exports = {
         })
     },
 
+    /**
+     * Retrieve account by GrantTicket.
+     *
+     * @param {String} grantTicket Temporary grant ticket issued to this account.
+     * @param {Number} loginMethod Filter accounts that are using specified login method.
+     * @return {Promise} Account data.
+     */
     getAccountByGrantTicket(grantTicket = "", loginMethod = 1) {
         return new Promise(async (res) => {
             let resp = await accmodel.findOne({grant_ticket: `${grantTicket}`, login_method: loginMethod})
@@ -118,6 +164,13 @@ module.exports = {
         })
     },
 
+    /**
+     * Retrieve account by UID.
+     *
+     * @param {String} deviceId DeviceId that you want to check for.
+     * @param {Number} loginMethod Filter accounts that are using specified login method.
+     * @return {Promise} Account data.
+     */
     getAccountByDeviceId(deviceId = "", loginMethod = 0) {
         return new Promise(async (res) => {
             let resp = await accmodel.findOne({authorized_devices: `${deviceId}`, login_method: loginMethod})
@@ -129,6 +182,14 @@ module.exports = {
         })
     },
 
+    /**
+     * Update account by UID.
+     *
+     * @param {String} accountId UID of the account.
+     * @param {String} grantTicket Temporary grant ticket to set.
+     * @param {String} sessionToken Set account session token.
+     * @return {Promise} Account data.
+     */
     updateAccountById(accountId = "", grantTicket = "", sessionToken = "") {
         return new Promise(async (res) => {
             let resp = await accmodel.updateOne({account_id: `${accountId}`}, {session_token: `${sessionToken}`, grant_ticket: `${grantTicket}`})
@@ -140,6 +201,13 @@ module.exports = {
         })
     },
 
+    /**
+     * Update account email verification by Email address.
+     *
+     * @param {String} accountEmail Email address of the account.
+     * @param {Boolean} verifiedEmail Is account email verified.
+     * @return {Promise} Account data.
+     */
     updateAccountVerifiedByEmail(accountEmail = "", verifiedEmail = false) {
         return new Promise(async (res) => {
             let resp = await accmodel.updateOne({email: `${accountEmail}`}, {email_verified: `${verifiedEmail}`})
@@ -151,6 +219,13 @@ module.exports = {
         })
     },
 
+    /**
+     * Update account password by Email address.
+     *
+     * @param {String} accountEmail Email address of the account.
+     * @param {String} newPassword New account password, should be passed encrypted.
+     * @return {Promise} Account data.
+     */
     updateAccountPasswordByEmail(accountEmail = "", newPassword = "") {
         return new Promise(async (res) => {
             let resp = await accmodel.updateOne({email: `${accountEmail}`}, {password: newPassword})
@@ -162,6 +237,13 @@ module.exports = {
         })
     },
 
+    /**
+     * Update account grant ticket by Username.
+     *
+     * @param {String} accountUsername Username of the account.
+     * @param {String} grantTicket New grant ticket.
+     * @return {Promise} Account data.
+     */
     updateAccountByUsername(accountUsername = "", grantTicket = "") {
         return new Promise(async (res) => {
             let resp = await accmodel.updateOne({username: `${accountUsername}`}, {grant_ticket: `${grantTicket}`})
@@ -173,6 +255,13 @@ module.exports = {
         })
     },
 
+    /**
+     * Update account email verification by Grant ticket.
+     *
+     * @param {String} grantTicket Grant ticket of the account.
+     * @param {Boolean} emailVerified Is email verified.
+     * @return {Promise} Account data.
+     */
     updateAccountByGrantTicket(grantTicket = "", emailVerified = false) {
         return new Promise(async (res) => {
             let resp = await accmodel.updateOne({grant_ticket: `${grantTicket}`}, {email_verified: emailVerified})
@@ -184,6 +273,13 @@ module.exports = {
         })
     },
 
+    /**
+     * Update account real name data by UID.
+     *
+     * @param {String} accountId UID of the account.
+     * @param {Object} realName New real name data object.
+     * @return {Promise} Account data.
+     */
     updateAccountRealnameById(accountId = "", realName = {}) {
         return new Promise(async (res) => {
             let resp = await accmodel.updateOne({account_id: `${accountId}`}, {realname: realName})
@@ -195,6 +291,13 @@ module.exports = {
         })
     },
 
+    /**
+     * Update account authorized devices by Grant ticket.
+     *
+     * @param {String} grantTicket Grant ticket of the account.
+     * @param {Array} authorizedDevices New list of authorized deviceIds.
+     * @return {Promise} Account data.
+     */
     updateAccountGrantDevicesByGrantTicket(grantTicket = "", authorizedDevices = []) {
         return new Promise(async (res) => {
             let resp = await accmodel.updateOne({grant_ticket: `${grantTicket}`}, {authorized_devices: authorizedDevices})
@@ -206,6 +309,13 @@ module.exports = {
         })
     },
 
+    /**
+     * Update account authorized devices by UID.
+     *
+     * @param {String} accountId UID of the account.
+     * @param {Array} authorizedDevices New list of authorized deviceIds.
+     * @return {Promise} Account data.
+     */
     updateAccountGrantDevicesById(accountId = "", authorizedDevices = []) {
         return new Promise(async (res) => {
             let resp = await accmodel.updateOne({account_id: `${accountId}`}, {authorized_devices: authorizedDevices})
@@ -217,6 +327,13 @@ module.exports = {
         })
     },
 
+    /**
+     * Update account session token by Grant ticket.
+     *
+     * @param {String} grantTicket Grant ticket of the account.
+     * @param {String} sessionToken New session token for the account.
+     * @return {Promise} Account data.
+     */
     updateAccountSessionTokenByGrantTicket(grantTicket = "", sessionToken = "") {
         return new Promise(async (res) => {
             let resp = await accmodel.updateOne({grant_ticket: `${grantTicket}`}, {session_token: sessionToken})
@@ -228,6 +345,13 @@ module.exports = {
         })
     },
 
+    /**
+     * Update account forget ticket by UID.
+     *
+     * @param {String} accountId UID of the account.
+     * @param {String} emailCode New forget ticket for this account.
+     * @return {Promise} Account data.
+     */
     updateAccountPasswordRstCodeById(accountId, emailCode = "") {
         return new Promise(async (res) => {
             let resp = await accmodel.updateOne({account_id: `${accountId}`}, {forget_ticket: emailCode})
@@ -241,7 +365,16 @@ module.exports = {
 
     // ===================== ROLES =====================
 
-    createRole(roleName = "", rolePrefix = "", roleCreatorId = "69", rolePermissions = []) {
+    /**
+     * Create new role.
+     *
+     * @param {String} roleName Name of the role.
+     * @param {String} rolePrefix Prefix of the role.
+     * @param {String} roleCreatorId UID of who made this role.
+     * @param {Array} rolePermissions Permission node list the role should have.
+     * @return {Promise} Creates new role.
+     */
+    /*createRole(roleName = "", rolePrefix = "", roleCreatorId = "69", rolePermissions = []) {
         return new Promise(async (res, rej) => {
             new rolemodel({
                 role_id: `${crypto.randomInt(1000, 99999999)}`,
@@ -255,9 +388,15 @@ module.exports = {
                 rej(err)
             })
         })
-    },
+    },*/
 
-    getRoleByName(roleName = "") {
+    /**
+     * Retrieve role by name.
+     *
+     * @param {String} roleName Name of the role.
+     * @return {Promise} Role data.
+     */
+    /*getRoleByName(roleName = "") {
         return new Promise(async (res, rej) => {
            let resp = await rolemodel.findOne({name: `${roleName}`})
             if (resp) {
@@ -266,10 +405,16 @@ module.exports = {
                 res(resp)
             }
         })
-    },
+    },*/
 
-    getRoleById(roleId = "") {
-        return new Promise(async (res, rej) => {
+    /**
+     * Retrieve role by ID.
+     *
+     * @param {String} roleId ID of the role.
+     * @return {Promise} Role data.
+     */
+    /*getRoleById(roleId = "") {
+        return new Promise(async (res) => {
             let resp = await rolemodel.findOne({role_id: `${roleId}`})
             if (resp) {
                 res(resp)
@@ -277,9 +422,15 @@ module.exports = {
                 res(resp)
             }
         })
-    },
+    },*/
 
-    getRoleByCreator(creatorId = "") {
+    /**
+     * Retrieve role by its Creator.
+     *
+     * @param {String} creatorId UID of the role creator.
+     * @return {Promise} Role data.
+     */
+    /*getRoleByCreator(creatorId = "") {
         return new Promise(async (res, rej) => {
             let resp = await rolemodel.findOne({created_by: `${creatorId}`})
             if (resp) {
@@ -288,10 +439,19 @@ module.exports = {
                 res(resp)
             }
         })
-    },
+    },*/
 
     // ===================== QRCODE LOGIN =====================
 
+    /**
+     * Create new QRCode entry.
+     *
+     * @param {String} ticket QRCode ticket.
+     * @param {String} state State of this QRCode.
+     * @param {String} deviceId DeviceId who initialized this QRCode entry.
+     * @param {String} expires When will this QRCode entry expire.
+     * @return {Promise} Creates QRCode login entry.
+     */
     createQR(ticket = "", state = ActionType.qrode.INIT, deviceId = "", expires = "") {
         return new Promise(async (res, rej) => {
             new qrloginmodel({
@@ -301,7 +461,6 @@ module.exports = {
                 expires: expires
             }).save().then(doc => {
                 res(doc._id)
-                console.log(doc)
                 //sendLog('Database').info(`User ${username} (${accountId}) registered/created successfully.`)
             }).catch(err => {
                 rej(err)
@@ -309,8 +468,15 @@ module.exports = {
         })
     },
 
+    /**
+     * Retrieve QRCode entry by deviceId.
+     *
+     * @param {String} deviceId DeviceId for this entry.
+     * @param {String} ticket QRCode ticket.
+     * @return {Promise} QRCode data.
+     */
     getQRByDeviceId(deviceId, ticket) {
-        return new Promise(async (res, rej) => {
+        return new Promise(async (res) => {
             let resp = await qrloginmodel.findOne({deviceId: `${deviceId}`, ticket: ticket})
             if (resp) {
                 res(resp)
@@ -320,8 +486,16 @@ module.exports = {
         })
     },
 
+    /**
+     * Update QRCode entry by deviceId.
+     *
+     * @param {String} deviceId DeviceId for this entry.
+     * @param {String} ticket QRCode ticket.
+     * @param {String} state State of this QRCode.
+     * @return {Promise} QRCode data.
+     */
     updateQRByDeviceId(deviceId = "", ticket = "", state = "") {
-        return new Promise(async (res, rej) => {
+        return new Promise(async (res) => {
             let resp = await qrloginmodel.updateOne({deviceId: `${deviceId}`, ticket: ticket}, {state: state})
             if (resp) {
                 res(resp)

@@ -3,7 +3,7 @@ const cfg = require('../config.json')
 const {sendLog} = require('../utils/logUtils')
 const dbm = require('../managers/databaseManager')
 const {statusCodes, ActionType, EMAIL_REGEX} = require('../utils/constants')
-const {validatePassword, encryptPassword} = require('../managers/cryptManager')
+const {validatePassword, encryptPassword, censorString, censorEmail} = require('../managers/cryptManager')
 const crypto = require('crypto')
 
 module.exports = (function() {
@@ -39,7 +39,7 @@ module.exports = (function() {
                 realname_operation: bindrealname,
                 realperson_required: false,
                 account: {
-                    uid: `${account.account_id}`, name: `${account.username}`, email: `${account.email}`, mobile: "", is_email_verify: "0",
+                    uid: `${account.account_id}`, name: `${censorString(account.username)}`, email: `${censorEmail(account.email)}`, mobile: "", is_email_verify: "0",
                     realname: "", identity_card: "", token: "", safe_mobile: "",
                     facebook_name: "", twitter_name: "", game_center_name: "", google_name: "",
                     apple_name: "", sony_name: "", tap_name: "", country: "US",
@@ -59,8 +59,8 @@ module.exports = (function() {
             } else if (!cfg.verifyAccountEmail || account.email_verified && account.realname.name !== "" || account.realname.identity !== "") {
                 data.account.is_email_verify = "1";
                 data.account.token = `${account.session_token}`
-                data.account.realname = `${account.realname.name}`
-                data.account.identity_card = `${account.realname.identity}`
+                data.account.realname = `${censorString(account.realname.name)}`
+                data.account.identity_card = `${censorString(account.realname.identity)}`
 
                 res.json({ retcode: statusCodes.success.RETCODE, message: "OK", data: data })
             }
@@ -98,7 +98,7 @@ module.exports = (function() {
                 realname_operation: bindrealname,
                 realperson_required: false,
                 account: {
-                    uid: `${account.account_id}`, name: `${account.username}`, email: `${account.email}`, mobile: "", is_email_verify: "0",
+                    uid: `${account.account_id}`, name: `${censorString(account.username)}`, email: `${censorEmail(account.email)}`, mobile: "", is_email_verify: "0",
                     realname: "", identity_card: "", token: "", safe_mobile: "",
                     facebook_name: "", twitter_name: "", game_center_name: "", google_name: "",
                     apple_name: "", sony_name: "", tap_name: "", country: "US",
@@ -118,8 +118,8 @@ module.exports = (function() {
             } else {
                 data.account.token = `${req.body.token}`
                 data.account.is_email_verify = "1"
-                data.account.realname = `${account.realname.name}`
-                data.account.identity_card = `${account.realname.identity}`
+                data.account.realname = `${censorString(account.realname.name)}`
+                data.account.identity_card = `${censorString(account.realname.identity)}`
                 res.json({ retcode: statusCodes.success.RETCODE, message: "OK", data: data })
             }
         } catch (e) {

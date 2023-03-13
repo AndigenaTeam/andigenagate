@@ -3,6 +3,12 @@ const {readdir, readFileSync, unlink} = require("fs");
 const compressing = require('compressing')
 
 module.exports = {
+    /**
+     * Writes pretty sexy console message and logs to file.
+     *
+     * @param {string} system What part of the service is sending the log.
+     * @return {Logger} Constructed logger ready to provide functions to actually send a message.
+     */
     sendLog(system) {
         return new Logger.default({
             debug: (process.env.ENV === "dev"),
@@ -15,6 +21,9 @@ module.exports = {
         })
     },
 
+    /**
+     * Archives all old logs that are not made on current date.
+     */
     archiveOldLogs() {
         return new Promise((res, rej) => {
             readdir('./logs', async function (err, list) {
