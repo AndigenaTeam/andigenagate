@@ -100,7 +100,7 @@ module.exports = {
         } else {
             let start = (text.length >= 10) ? 2 : 1
             let end = (text.length) > 5 ? 2 : 1
-            return `${text[(start > 1) ? start : 0]}****${text[(end > 1) ? text.length - end : 0]}`
+            return `${text[(start > 1) ? start : 0]}****${text[text.length - end+1]}`
         }
     },
 
@@ -111,6 +111,7 @@ module.exports = {
      */
     censorEmail(text = "") {
         let splitted = text.split('@')
-        return `${module.exports.censorString(splitted[0])}@${module.exports.censorString(splitted[1])}`
+        let split2 = splitted[1].split('.')
+        return `${module.exports.censorString(splitted[0])}@${module.exports.censorString(split2[0])}.${split2[1]}`
     }
 }

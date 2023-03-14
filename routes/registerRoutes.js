@@ -1,13 +1,26 @@
 const express = require('express')
+const session = require('express-session')
+const MemoryStore = require("memorystore")(session)
+const cookieParser = require("cookie-parser")
 const {sendLog} = require('../utils/logUtils')
 const dbm = require('../managers/databaseManager')
 const crm = require('../managers/cryptManager')
 const {statusCodes, ActionType} = require('../utils/constants')
 const cfg = require('../config.json')
 const crypto = require('crypto')
+const superagent = require('superagent')
 
 module.exports = (function() {
     let reg = express.Router()
+    reg.use(cookieParser());
+    const oneDay = 1000 * 60 * 60 * 24;
+    reg.use(session({
+        store: new MemoryStore({checkPeriod: 86400000 }),
+        secret: crypto.randomUUID().toString(),
+        saveUninitialized: true,
+        cookie: { maxAge: oneDay },
+        resave: false
+    }));
 
     reg.post(`/Api/regist_by_email`, async function (req, res) {
         try {
@@ -74,14 +87,50 @@ module.exports = (function() {
 
     reg.get(`/Api/login_by_qr`, async function (req, res) {
         try {
-            let qrd = await dbm.getQRByDeviceId(req.query.device)
+            let qrd = await dbm.getQRByDeviceId(req.query.device, req.query.ticket)
             if (!qrd || new Date(qrd.expires) < Date.now() || qrd.state !== ActionType.qrode.INIT) return res.send(`<h3>Invalid request or QR code has expired. Please scan code displayed by game window again.</h3>`);
 
-            await dbm.updateQRByDeviceId(req.query.device, req.body.ticket, ActionType.qrode.SCANNED)
-            res.send(`<h1>By logging in you will authorize device displaying QR code to log in to your account.</h1>`)
+            await dbm.updateQRByDeviceId(req.query.device, req.query.ticket, ActionType.qrode.SCANNED)
+            let params = Buffer.from(`${JSON.stringify({expire: qrd.expires, device: req.query.device, ticket: req.query.ticket})}`).toString("base64")
+            res.redirect(`${process.env.DISCORD_OAUTH_BASE}?client_id=${process.env.DISCORD_CLIENT_ID}&redirect_uri=${cfg.socialLogin.discordQR.callbackUrl}&response_type=code&scope=${process.env.DISCORD_OAUTH_SCOPES}&state=${params}`)
         } catch (e) {
             sendLog('Gate').error(e)
             res.json({retcode: statusCodes.error.FAIL, message: "An error occurred, try again later! If this error persist contact the server administrator."})
+        }
+    })
+
+    reg.get(`/Api/login_by_qr/callback`, async function (req, resp) {
+        try {
+            const {code} = req.query
+            if (!req.query.code) {
+                return resp.send('No access code specified');
+            }
+
+            let paramsd = Buffer.from(`${req.query.state}`, 'base64').toString("utf-8")
+            let params = JSON.parse(paramsd)
+
+            let qrd = await dbm.getQRByDeviceId(params.device, params.ticket)
+            if (!qrd || new Date(qrd.expires) < Date.now() || qrd.state !== ActionType.qrode.SCANNED) return resp.send(`<h3>Invalid request or QR code has expired. Please scan code displayed by game window again.</h3>`);
+
+            await superagent.post(`https://discord.com/api/oauth2/token`)
+                .send({
+                    client_id: process.env.DISCORD_CLIENT_ID,
+                    client_secret: process.env.DISCORD_CLIENT_SECRET,
+                    code,
+                    grant_type: 'authorization_code',
+                    redirect_uri: `${cfg.socialLogin.discordQR.callbackUrl}`,
+                    scope: `${process.env.DISCORD_OAUTH_SCOPES}`
+                })
+                .set('Content-Type', 'application/x-www-form-urlencoded')
+                .end(async (err, res) => {
+                    await dbm.updateQRByDeviceId(params.device, params.ticket, ActionType.qrode.CONFIRMED)
+                    if (err) res.redirect(`${cfg.serverAddress}:${cfg.serverPort}/`)
+                    req.session.token = res.body.access_token;
+                    resp.redirect(`/sdkDiscordLogin.html?data=${req.query.state}`)
+                })
+        } catch (e) {
+            sendLog('Gate').error(e)
+            resp.json({retcode: statusCodes.error.FAIL, message: "An error occurred, try again later! If this error persist contact the server administrator."})
         }
     })
 

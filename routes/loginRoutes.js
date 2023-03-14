@@ -4,7 +4,9 @@ const {sendLog} = require('../utils/logUtils')
 const dbm = require('../managers/databaseManager')
 const {statusCodes, ActionType, EMAIL_REGEX} = require('../utils/constants')
 const {validatePassword, encryptPassword, censorString, censorEmail} = require('../managers/cryptManager')
+const {prepareEmail} = require("../managers/smtpManager")
 const crypto = require('crypto')
+const superagent = require('superagent')
 
 module.exports = (function() {
     let login = express.Router()
@@ -17,10 +19,11 @@ module.exports = (function() {
     login.post(`/:platform/mdk/shield/api/login`, async function (req, res) {
         try {
             sendLog('/shield/api/login').debug(`${JSON.stringify(req.body)}`)
-            let account = (EMAIL_REGEX.test(req.body.account)) ? await dbm.getAccountByEmail(req.body.account) : await dbm.getAccountByUsername(req.body.account)
+            let account = (EMAIL_REGEX.test(req.body.account)) ? await dbm.getAccountByEmail(req.body.account, 1) : await dbm.getAccountByUsername(req.body.account)
             if (account === null || account.login_method === 0) return res.json({retcode: statusCodes.error.LOGIN_FAILED, message: "Account does not exist.", data: null})
             let rnd = JSON.parse(JSON.stringify(account.realname))
             let bindrealname = ActionType.realname.NONE
+
             if (cfg.verifyAccountPassword) {
                 let validatedpass = await validatePassword(account.password, req.body.password, true)
                 if (validatedpass === false) return res.json({retcode: statusCodes.error.LOGIN_FAILED, message: "Account password is invalid.", data: null})
@@ -48,7 +51,7 @@ module.exports = (function() {
 
             if (cfg.verifyAccountEmail && !account.email_verified || !account.authorized_devices.includes(req.headers['x-rpc-device_id'])) {
                 let verifytokend = parseInt(Buffer.from(crypto.randomBytes(3)).toString("hex"), 16).toString().substring(0, 6)
-                console.log('debug verify code', verifytokend)
+                prepareEmail(verifytokend)
 
                 let verifytoken = await encryptPassword(verifytokend)
                 await dbm.updateAccountByUsername(`${account.username}`, `${verifytoken}`)
@@ -80,7 +83,7 @@ module.exports = (function() {
     login.post(`/:platform/mdk/shield/api/verify`, async function (req, res) {
         try {
             sendLog('/shield/api/verify').debug(`${JSON.stringify(req.body)}`)
-            let account = await dbm.getAccountById(req.body.uid, 1)
+            let account = await dbm.getAccountById(req.body.uid)
             let bindrealname = ActionType.realname.NONE
             if (account === null || account.session_token !== req.body.token) return res.json({retcode: statusCodes.error.FAIL, message: "Game account cache information error."})
             let rnd = JSON.parse(JSON.stringify(account.realname))
@@ -107,10 +110,10 @@ module.exports = (function() {
 
             if (!account.authorized_devices.includes(req.headers['x-rpc-device_id']) && account.email_verified || !account.authorized_devices.includes(req.headers['x-rpc-device_id']) && !account.email_verified) {
                 let verifytokend = parseInt(Buffer.from(crypto.randomBytes(3)).toString("hex"), 16).toString().substring(0, 6)
-                console.log('debug verify code', verifytokend)
+                prepareEmail(verifytokend)
 
                 let verifytoken = await encryptPassword(verifytokend)
-                await dbm.updateAccountById(`${req.body.uid}`, `${verifytoken}`, "")
+                await dbm.updateAccountById(`${req.body.uid}`, `${verifytoken}`, `${req.body.token}`)
                 data.device_grant_required = true
                 data.account.device_grant_ticket = `${verifytoken}`
 
@@ -137,7 +140,7 @@ module.exports = (function() {
         try {
             sendLog('/granter/login/v2/login').debug(`${JSON.stringify(req.body)}`)
             let ldata = JSON.parse(req.body.data)
-            let account = await dbm.getAccountById(`${ldata.uid}`, (ldata.guest) ? 0 : 1)
+            let account = await dbm.getAccountById(`${ldata.uid}`)
             if (account === null) return res.json({retcode: statusCodes.error.FAIL, message: "Account does not exist! Contact administrator if you think this is an issue."})
             if (account.session_token !== ldata.token) return res.json({retcode: statusCodes.error.FAIL, message: "Game account cache information error."})
             if (account.realname.name === null || account.realname.identity === null && cfg.allowRealnameLogin) return res.json({retcode: statusCodes.error.FAIL, message: "Account verification required."})
@@ -243,6 +246,7 @@ module.exports = (function() {
 
             await dbm.createQR(`${ticket}`, `${ActionType.qrode.INIT}`, `${req.body.device}`, `${expires}`)
 
+            console.log(`${url}?expire=${expires}\u0026ticket=${ticket}\u0026device=${req.body.device}`)
             res.json({retcode: statusCodes.success.RETCODE, message: "OK", data: {url: `${url}?expire=${expires}\u0026ticket=${ticket}\u0026device=${req.body.device}`}})
         } catch (e) {
             sendLog('Gate').error(e)
@@ -260,8 +264,8 @@ module.exports = (function() {
             if (new Date(qrd.expires) < Date.now()) return res.json({retcode: statusCodes.error.LOGOUT_ERROR, message: `QRCode expired, generate a new one.`})
 
             if (qrd.state === ActionType.qrode.CONFIRMED) {
-                let account = await dbm.getAccountByDeviceId(req.body.device)
-                if (!account) return res.json({retcode: statusCodes.error.FAIL, message: "Account does not exist!"})
+                let account = await dbm.getAccountByDeviceId(req.body.device, 2)
+                if (account === null) return res.json({retcode: statusCodes.error.FAIL, message: "Account does not exist!"})
                 let rnd = JSON.parse(JSON.stringify(account.realname))
 
                 if (!account.authorized_devices.includes(req.body.device)) {
@@ -269,12 +273,12 @@ module.exports = (function() {
                     await dbm.updateAccountGrantDevicesById(account.account_id, account.authorized_devices)
                 }
 
-                let token = Buffer.from(crypto.randomUUID().replaceAll("-", '')).toString('hex')
-                await dbm.updateAccountById(account.account_id, "", token)
+                //let token = Buffer.from(crypto.randomUUID().replaceAll("-", '')).toString('hex')
+                //await dbm.updateAccountById(account.account_id, "", token)
 
                 payload = {"proto": "Account",
                     "raw": JSON.stringify({"uid": `${account.account_id}`, "name": `${account.username}`, "email": `${account.email}`,
-                        "is_email_verify": false, "realname": `${rnd.name}`, "identity_card": `${rnd.identity}`, "token": token, "country": "ZZ"}) }
+                        "is_email_verify": false, "realname": `${rnd.name}`, "identity_card": `${rnd.identity}`, "token": account.session_token, "country": "ZZ"}) }
 
             } else {
                 payload = {}
@@ -342,6 +346,37 @@ module.exports = (function() {
         } catch (e) {
             sendLog('Gate').error(e)
             res.json({retcode: statusCodes.error.FAIL, message: "An error occurred, try again later! If this error persist contact the server administrator."})
+        }
+    })
+
+    login.get(`/sdkDiscordLogin.html`, async function (req, resp) {
+        try {
+            if(!req.session.token) {return resp.redirect(`${cfg.serverAddress}:${cfg.serverPort}/`)}
+
+            await superagent.get(`https://discord.com/api/users/@me`)
+                .set('authorization', `Bearer ${req.session.token}`)
+                .end(async (err, res1) => {
+                    if (err) return resp.redirect(`${cfg.serverAddress}:${cfg.serverPort}/`)
+                    req.session.userid = res1.body.id
+                    req.session.avatar = res1.body.avatar
+                    let uid = cfg.advanced.uidPrefix + Math.floor(1000 + Math.random() * 9000).toString()
+                    let paramsd = Buffer.from(`${req.query.data}`, 'base64').toString("utf-8")
+                    let params = JSON.parse(paramsd)
+
+                    if (req.session.userid) {
+                        let account = await dbm.getAccountByEmail(`${res1.body.email}`, 2)
+                        if (account === null) {
+                            await dbm.createAccount(parseInt(uid), `${res1.body.username}#${res1.body.discriminator}`, `${res1.body.email}`, "", 2, true, params.ticket, [params.device])
+                        }
+
+                        resp.send(`<h2>You have successfully completed the login process, you can close this window and continue ingame.</h2>`)
+                    } else {
+                        resp.redirect(`${cfg.serverAddress}:${cfg.serverPort}/`)
+                    }
+                })
+        } catch (e) {
+            sendLog('Gate').error(e)
+            resp.json({retcode: statusCodes.error.FAIL, message: "An error occurred, try again later! If this error persist contact the server administrator."})
         }
     })
 

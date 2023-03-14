@@ -25,7 +25,7 @@ module.exports = (function() {
 
     // sdk-os-static.hoyoverse.com
     miscr.all(`/combo/box/api/config/sdk/combo`, function (req, res) {
-        return res.json({retcode: 0, message: "OK", data: {vals:{disable_email_bind_skip:false, email_bind_remind_interval:"7", email_bind_remind: true}}})
+        return res.json({retcode: 0, message: "OK", data: {vals:{disable_email_bind_skip: false, email_bind_remind_interval:"7", email_bind_remind: true}}})
     })
 
     // hk4e-sdk-os-static.hoyoverse.com

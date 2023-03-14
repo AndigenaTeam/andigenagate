@@ -115,12 +115,11 @@ module.exports = {
      * Retrieve account by UID.
      *
      * @param {String} accountId UID of the account.
-     * @param {Number} loginMethod Filter accounts that are using specified login method.
      * @return {Promise} Account data.
      */
-    getAccountById(accountId = "", loginMethod = 1) {
+    getAccountById(accountId = "") {
         return new Promise(async (res) => {
-           let resp = await accmodel.findOne({account_id: `${accountId}`, login_method: loginMethod})
+           let resp = await accmodel.findOne({account_id: `${accountId}`})
             if (resp) {
                 res(resp)
             } else {
@@ -133,11 +132,12 @@ module.exports = {
      * Retrieve account by Email address.
      *
      * @param {String} accountEmail Email address of the account.
+     * @param {Number} loginMethod Filter accounts that are using specified login method.
      * @return {Promise} Account data.
      */
-    getAccountByEmail(accountEmail = "") {
+    getAccountByEmail(accountEmail = "", loginMethod = 0) {
         return new Promise(async (res) => {
-            let resp = await accmodel.findOne({email: `${accountEmail}`})
+            let resp = await accmodel.findOne({email: `${accountEmail}`, login_method: loginMethod})
             if (resp) {
                 res(resp)
             } else {
@@ -150,12 +150,11 @@ module.exports = {
      * Retrieve account by GrantTicket.
      *
      * @param {String} grantTicket Temporary grant ticket issued to this account.
-     * @param {Number} loginMethod Filter accounts that are using specified login method.
      * @return {Promise} Account data.
      */
-    getAccountByGrantTicket(grantTicket = "", loginMethod = 1) {
+    getAccountByGrantTicket(grantTicket = "") {
         return new Promise(async (res) => {
-            let resp = await accmodel.findOne({grant_ticket: `${grantTicket}`, login_method: loginMethod})
+            let resp = await accmodel.findOne({grant_ticket: `${grantTicket}`})
             if (resp) {
                 res(resp)
             } else {
@@ -173,7 +172,7 @@ module.exports = {
      */
     getAccountByDeviceId(deviceId = "", loginMethod = 0) {
         return new Promise(async (res) => {
-            let resp = await accmodel.findOne({authorized_devices: `${deviceId}`, login_method: loginMethod})
+            let resp = await accmodel.findOne({authorized_devices: { $elemMatch: {$eq: `${deviceId}`} }, login_method: loginMethod})
             if (resp) {
                 res(resp)
             } else {

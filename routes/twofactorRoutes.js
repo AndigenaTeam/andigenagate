@@ -5,6 +5,7 @@ const {validatePassword, encryptPassword} = require('../managers/cryptManager')
 const cfg = require('../config.json')
 const {ActionType, preGrantWay, statusCodes} = require('../utils/constants')
 const crypto = require('crypto')
+const {sendEmail, getCode} = require("../managers/smtpManager");
 
 module.exports = (function() {
     let pregrant = express.Router()
@@ -41,14 +42,28 @@ module.exports = (function() {
         try {
             switch (req.body.way) {
                 case preGrantWay.WAY_EMAIL: {
+                    let account = await dbm.getAccountByGrantTicket(req.body.action_ticket)
+                    if (account === null) return res.json({retcode: statusCodes.error.FAIL, message: "Account does not exist!"})
+
                     await dbm.updateAccountByGrantTicket(req.body.action_ticket, false)
+
+                    let textformat = cfg.advanced.emailVerification.text.replaceAll("%username%", account.username).replaceAll("%verifycode%", getCode())
+                    let htmlformat = cfg.advanced.emailVerification.html.replaceAll("%username%", account.username).replaceAll("%verifycode%", getCode())
+                    await sendEmail(account.email, cfg.advanced.emailVerification.subject, textformat, htmlformat)
 
                     sendLog('Gate').info(`Account with deviceId ${req.body.device.device_id} requested email verification code.`)
                     res.json({retcode: statusCodes.success.RETCODE, message: "OK", data: {ticket: `${req.body.action_ticket}`}})
                 }
                 break;
                 case preGrantWay.WAY_BINDMOBILE: {
+                    let account = await dbm.getAccountByGrantTicket(req.body.action_ticket)
+                    if (account === null) return res.json({retcode: statusCodes.error.FAIL, message: "Account does not exist!"})
+
                     await dbm.updateAccountByGrantTicket(req.body.action_ticket, false)
+
+                    let textformat = cfg.advanced.emailVerification.text.replaceAll("%username%", account.username).replaceAll("%verifycode%", getCode())
+                    let htmlformat = cfg.advanced.emailVerification.html.replaceAll("%username%", account.username).replaceAll("%verifycode%", getCode())
+                    await sendEmail(account.email, cfg.advanced.emailVerification.subject, textformat, htmlformat)
 
                     sendLog('Gate').info(`Account with deviceId ${req.body.device.device_id} requested email verification code.`)
                     res.json({retcode: statusCodes.success.RETCODE, message: "OK", data: {ticket: `${req.body.action_ticket}`}})
@@ -64,9 +79,9 @@ module.exports = (function() {
     pregrant.post(`/:platform/mdk/shield/api/actionTicket`, async function(req, res) {
         try {
             console.log('/api/actionTicket', req.body)
-            let account = await dbm.getAccountById(req.body.account_id, 1)
+            let account = await dbm.getAccountById(req.body.account_id)
             if (account === null) return res.json({retcode: statusCodes.error.LOGIN_FAILED, message: "Ticket cache information error."})
-            if (!req.body.game_token || account.session_token !== req.body.game_token) return res.json({retcode: statusCodes.error.LOGIN_FAILED, message: "Game cache information error."})
+            if (account.session_token !== req.body.game_token) return res.json({retcode: statusCodes.error.LOGIN_FAILED, message: "Game cache information error."})
 
             let verifytoken = await encryptPassword(parseInt(Buffer.from(crypto.randomBytes(3)).toString("hex"), 16).toString().substring(0, 6))
 

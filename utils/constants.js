@@ -142,7 +142,7 @@ const DEFAULT_CONFIG = {
     socialLogin: {
         facebook: {
             enabled: true,
-            url: "https://discord.gg/gcbackrooms"
+            url: "https://google.com"
         },
         twitter: {
             enabled: true,
@@ -150,10 +150,17 @@ const DEFAULT_CONFIG = {
         },
         discordQR: {
             enabled: true,
-            url: "https://discord.com"
-        }
+            url: "http://127.0.0.1:669/Api/login_by_qr",
+            callbackUrl: "http://127.0.0.1:669/Api/login_by_qr/callback"
+        },
+
     },
     advanced: {
+        emailVerification: {
+            subject: "Your AndigenaPS account verification code!",
+            text: "Hello, %username% bellow you can find your verification code.\nVerification code: %verifycode%",
+            html: "Hello, <strong>%username%</strong> bellow you can find your verification code.<br><strong>Verification code:</strong> %verifycode%"
+        },
         disableYSDKGuard: false,
         enableAnnouncePicPopup: true,
         uidPrefix: "8",
