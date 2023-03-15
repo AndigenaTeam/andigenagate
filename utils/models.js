@@ -28,6 +28,19 @@ module.exports = {
     },
 
     /**
+     * Construct the deviceGrant collection schema.
+     */
+    deviceGrantSchema() {
+        return new mongoose.Schema({
+            ticket: { type: String, index: true, unique: true },
+            state: {type: Number, default: 0},
+            code: {type: String, default: ''},
+            email: {type: String, default: ''},
+            deviceId: {type: String, default: ''}
+        });
+    },
+
+    /**
      * Construct the accounts collection schema.
      */
     accountSchema() {
@@ -40,7 +53,6 @@ module.exports = {
             login_method: {type: Number, min: 0, max: 3 },
             role: {type: String},
             email_verified: {type: Boolean, default: false},
-            grant_ticket: {type: String},
             forget_ticket: {Type: String},
             session_token: {type: String},
             authorized_devices: {type: Array, default: []},

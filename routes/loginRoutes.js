@@ -3,8 +3,7 @@ const cfg = require('../config.json')
 const {sendLog} = require('../utils/logUtils')
 const dbm = require('../managers/databaseManager')
 const {statusCodes, ActionType, EMAIL_REGEX} = require('../utils/constants')
-const {validatePassword, encryptPassword, censorString, censorEmail} = require('../managers/cryptManager')
-const {prepareEmail} = require("../managers/smtpManager")
+const {validatePassword, censorString, censorEmail} = require('../managers/cryptManager')
 const crypto = require('crypto')
 const superagent = require('superagent')
 
@@ -50,20 +49,17 @@ module.exports = (function() {
             }
 
             if (cfg.verifyAccountEmail && !account.email_verified || !account.authorized_devices.includes(req.headers['x-rpc-device_id'])) {
-                let verifytokend = parseInt(Buffer.from(crypto.randomBytes(3)).toString("hex"), 16).toString().substring(0, 6)
-                prepareEmail(verifytokend)
-
-                let verifytoken = await encryptPassword(verifytokend)
-                await dbm.updateAccountByUsername(`${account.username}`, `${verifytoken}`)
+                let ticket = Buffer.from(crypto.randomUUID().replaceAll("-", '')).toString('hex')
+                await dbm.createDeviceGrant(ticket, 0, req.headers['x-rpc-device_id'], account.email)
                 data.device_grant_required = true
-                data.account.device_grant_ticket = `${verifytoken}`
+                data.account.device_grant_ticket = `${ticket}`
 
                 res.json({ retcode: statusCodes.success.RETCODE, message: "OK", data: data })
-            } else if (!cfg.verifyAccountEmail || account.email_verified && account.realname.name !== "" || account.realname.identity !== "") {
+            } else if (!cfg.verifyAccountEmail || account.email_verified && account.realname.name !== null || account.realname.identity !== null) {
                 data.account.is_email_verify = "1";
                 data.account.token = `${account.session_token}`
-                data.account.realname = `${censorString(account.realname.name)}`
-                data.account.identity_card = `${censorString(account.realname.identity)}`
+                data.account.realname = `${account.realname.name}`
+                data.account.identity_card = `${account.realname.identity}`
 
                 res.json({ retcode: statusCodes.success.RETCODE, message: "OK", data: data })
             }
@@ -109,20 +105,17 @@ module.exports = (function() {
             }
 
             if (!account.authorized_devices.includes(req.headers['x-rpc-device_id']) && account.email_verified || !account.authorized_devices.includes(req.headers['x-rpc-device_id']) && !account.email_verified) {
-                let verifytokend = parseInt(Buffer.from(crypto.randomBytes(3)).toString("hex"), 16).toString().substring(0, 6)
-                prepareEmail(verifytokend)
-
-                let verifytoken = await encryptPassword(verifytokend)
-                await dbm.updateAccountById(`${req.body.uid}`, `${verifytoken}`, `${req.body.token}`)
+                let ticket = Buffer.from(crypto.randomUUID().replaceAll("-", '')).toString('hex')
+                await dbm.createDeviceGrant(ticket, 0, req.headers['x-rpc-device_id'], account.email)
                 data.device_grant_required = true
-                data.account.device_grant_ticket = `${verifytoken}`
+                data.account.device_grant_ticket = `${ticket}`
 
                 res.json({ retcode: statusCodes.success.RETCODE, message: "OK", data: data })
             } else {
                 data.account.token = `${req.body.token}`
                 data.account.is_email_verify = "1"
-                data.account.realname = `${censorString(account.realname.name)}`
-                data.account.identity_card = `${censorString(account.realname.identity)}`
+                data.account.realname = `${account.realname.name}`
+                data.account.identity_card = `${account.realname.identity}`
                 res.json({ retcode: statusCodes.success.RETCODE, message: "OK", data: data })
             }
         } catch (e) {
@@ -157,12 +150,12 @@ module.exports = (function() {
             }
 
             if (cfg.verifyAccountEmail && !ldata.guest) {
-                await dbm.updateAccountById(`${ldata.uid}`, "", `${token}`)
+                await dbm.updateAccountById(`${ldata.uid}`, `${token}`)
 
                 res.json({ retcode: statusCodes.success.RETCODE, message: "OK", data: data })
 
             } else if (!cfg.verifyAccountEmail || ldata.guest) {
-                await dbm.updateAccountById(`${ldata.uid}`, "", `${token}`)
+                await dbm.updateAccountById(`${ldata.uid}`,`${token}`)
                 await dbm.updateAccountGrantDevicesById(ldata.uid, account.authorized_devices)
 
                 sendLog("Gate").info(`${ldata.guest ? "Guest account" : "Account"} with UID ${ldata.uid} (platform: ${req.params.platform}) logged in successfully.`)
@@ -216,8 +209,6 @@ module.exports = (function() {
 
     login.post(`/:platform/combo/granter/login/beforeVerify`, async function (req, res) {
         try {
-            console.log('/granter/login/beforeVerify', req.body)
-
             res.json({retcode: statusCodes.success.RETCODE, message: "OK", data: {is_heartbeat_required: false, is_realname_required: cfg.allowRealnameLogin, is_guardian_required: false}})
         } catch (e) {
             sendLog('Gate').error(e)
@@ -246,7 +237,7 @@ module.exports = (function() {
 
             await dbm.createQR(`${ticket}`, `${ActionType.qrode.INIT}`, `${req.body.device}`, `${expires}`)
 
-            console.log(`${url}?expire=${expires}\u0026ticket=${ticket}\u0026device=${req.body.device}`)
+            //console.log(`${url}?expire=${expires}\u0026ticket=${ticket}\u0026device=${req.body.device}`)
             res.json({retcode: statusCodes.success.RETCODE, message: "OK", data: {url: `${url}?expire=${expires}\u0026ticket=${ticket}\u0026device=${req.body.device}`}})
         } catch (e) {
             sendLog('Gate').error(e)
@@ -273,12 +264,12 @@ module.exports = (function() {
                     await dbm.updateAccountGrantDevicesById(account.account_id, account.authorized_devices)
                 }
 
-                //let token = Buffer.from(crypto.randomUUID().replaceAll("-", '')).toString('hex')
-                //await dbm.updateAccountById(account.account_id, "", token)
-
+                let token = Buffer.from(crypto.randomUUID().replaceAll("-", '')).toString('hex')
+                await dbm.updateAccountById(account.account_id, token)
+                await dbm.deleteQRByDeviceId(req.body.device, req.body.ticket)
                 payload = {"proto": "Account",
                     "raw": JSON.stringify({"uid": `${account.account_id}`, "name": `${account.username}`, "email": `${account.email}`,
-                        "is_email_verify": false, "realname": `${rnd.name}`, "identity_card": `${rnd.identity}`, "token": account.session_token, "country": "ZZ"}) }
+                        "is_email_verify": false, "realname": `${rnd.name}`, "identity_card": `${rnd.identity}`, "token": token, "country": "ZZ"}) }
 
             } else {
                 payload = {}
@@ -366,7 +357,7 @@ module.exports = (function() {
                     if (req.session.userid) {
                         let account = await dbm.getAccountByEmail(`${res1.body.email}`, 2)
                         if (account === null) {
-                            await dbm.createAccount(parseInt(uid), `${res1.body.username}#${res1.body.discriminator}`, `${res1.body.email}`, "", 2, true, params.ticket, [params.device])
+                            await dbm.createAccount(parseInt(uid), `${res1.body.username}#${res1.body.discriminator}`, `${res1.body.email}`, "", 2, true, "", [params.device])
                         }
 
                         resp.send(`<h2>You have successfully completed the login process, you can close this window and continue ingame.</h2>`)

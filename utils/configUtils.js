@@ -23,6 +23,11 @@ module.exports = {
             sendLog('config utility').debug(`/data/languages directory does not exist... creating empty one for you :D`)
         }
 
+        if (!existsSync(`./data/images`)) {
+            mkdirSync(`./data/images`)
+            sendLog('config utility').debug(`/data/images directory does not exist... creating empty one for you :D`)
+        }
+
         if (!existsSync(`./data/keys`)) {
             mkdirSync(`./data/keys`)
             sendLog('config utility').debug(`/data/keys directory does not exist... creating empty one for you :D`)
@@ -36,6 +41,11 @@ module.exports = {
         if (!existsSync(`./data/configs/keys.json`)) {
             writeFileSync(`./data/configs/keys.json`, Buffer.from(JSON.stringify(constants.DEFAULT_KEYS_CONFIG, null, 2)).toString("utf-8"))
             sendLog('config utility').info(`keys.json does not exist... creating default one for you :D`)
+        }
+
+        if (!existsSync(`./data/configs/email_messages.json`)) {
+            writeFileSync(`./data/configs/email_messages.json`, Buffer.from(JSON.stringify(constants.DEFAULT_EMAILMSGS, null, 2)).toString("utf-8"))
+            sendLog('config utility').info(`email_messages.json does not exist... creating default one for you :D`)
         }
 
     },

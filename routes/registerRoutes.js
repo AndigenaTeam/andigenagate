@@ -7,8 +7,11 @@ const dbm = require('../managers/databaseManager')
 const crm = require('../managers/cryptManager')
 const {statusCodes, ActionType} = require('../utils/constants')
 const cfg = require('../config.json')
+const emailverfymsgs = require('../data/configs/email_messages.json')
 const crypto = require('crypto')
 const superagent = require('superagent')
+const {sendEmail} = require("../managers/smtpManager");
+const emailverifymsgs = require("../data/configs/email_messages.json");
 
 module.exports = (function() {
     let reg = express.Router()
@@ -54,7 +57,9 @@ module.exports = (function() {
                 let verifycode = parseInt(Buffer.from(crypto.randomBytes(3)).toString("hex"), 16).toString().substring(0, 6)
                 let vcenc = await crm.encryptPassword(verifycode)
                 await dbm.updateAccountPasswordRstCodeById(account.account_id, vcenc)
-                console.log('debug forget password code', verifycode)
+                let textformat = emailverifymsgs.text.replaceAll("%verifycode%", verifycode)
+                let htmlformat = emailverifymsgs.html.replaceAll("%verifycode%", verifycode)
+                await sendEmail(req.body.email, emailverfymsgs.subject, textformat, htmlformat)
 
                 res.json({code: statusCodes.success.WEB_STANDARD, data: {info: "forgetpassword_verifycodereq", msg: "Success"}})
             }

@@ -1,23 +1,7 @@
 const nodemailer = require("nodemailer")
 const {sendLog} = require("../utils/logUtils")
 
-var verificationcode = "";
 module.exports = {
-    /**
-     * Used to obtain 6 digits code and prepare email before user clicks send code.
-     *
-     * @param verifyCode 6 digit code to return.
-     * @return {String} The 6 digits code received to email.
-     */
-    prepareEmail(verifyCode = "") {
-        verificationcode = verifyCode;
-        return verificationcode;
-    },
-
-    getCode() {
-        return verificationcode;
-    },
-
     /**
      * Sends verification email to the account's email address.
      *

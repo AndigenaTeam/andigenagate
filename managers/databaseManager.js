@@ -6,7 +6,8 @@ const {ActionType} = require("../utils/constants")
 
 const accmodel = new mongoose.model('accountModel', models.accountSchema(), 'account')
 const rolemodel = new mongoose.model('roleModel', models.roleSchema(), 'roles')
-const qrloginmodel = new mongoose.model("qrLoginModel", models.qrLoginSchema(), "qrdata")
+const qrloginmodel = new mongoose.model("qrLoginModel", models.qrLoginSchema(), "qrtickets")
+const devicegrantmodel = new mongoose.model("deviceGrantModel", models.deviceGrantSchema(), "devicetickets")
 
 module.exports = {
     /**
@@ -147,23 +148,6 @@ module.exports = {
     },
 
     /**
-     * Retrieve account by GrantTicket.
-     *
-     * @param {String} grantTicket Temporary grant ticket issued to this account.
-     * @return {Promise} Account data.
-     */
-    getAccountByGrantTicket(grantTicket = "") {
-        return new Promise(async (res) => {
-            let resp = await accmodel.findOne({grant_ticket: `${grantTicket}`})
-            if (resp) {
-                res(resp)
-            } else {
-                res(resp)
-            }
-        })
-    },
-
-    /**
      * Retrieve account by UID.
      *
      * @param {String} deviceId DeviceId that you want to check for.
@@ -185,13 +169,12 @@ module.exports = {
      * Update account by UID.
      *
      * @param {String} accountId UID of the account.
-     * @param {String} grantTicket Temporary grant ticket to set.
      * @param {String} sessionToken Set account session token.
      * @return {Promise} Account data.
      */
-    updateAccountById(accountId = "", grantTicket = "", sessionToken = "") {
+    updateAccountById(accountId = "", sessionToken = "") {
         return new Promise(async (res) => {
-            let resp = await accmodel.updateOne({account_id: `${accountId}`}, {session_token: `${sessionToken}`, grant_ticket: `${grantTicket}`})
+            let resp = await accmodel.updateOne({account_id: `${accountId}`}, {session_token: `${sessionToken}`})
             if (resp) {
                 res(resp)
             } else {
@@ -243,7 +226,7 @@ module.exports = {
      * @param {String} grantTicket New grant ticket.
      * @return {Promise} Account data.
      */
-    updateAccountByUsername(accountUsername = "", grantTicket = "") {
+    /*updateAccountByUsername(accountUsername = "", grantTicket = "") {
         return new Promise(async (res) => {
             let resp = await accmodel.updateOne({username: `${accountUsername}`}, {grant_ticket: `${grantTicket}`})
             if (resp) {
@@ -252,25 +235,7 @@ module.exports = {
                 res(resp)
             }
         })
-    },
-
-    /**
-     * Update account email verification by Grant ticket.
-     *
-     * @param {String} grantTicket Grant ticket of the account.
-     * @param {Boolean} emailVerified Is email verified.
-     * @return {Promise} Account data.
-     */
-    updateAccountByGrantTicket(grantTicket = "", emailVerified = false) {
-        return new Promise(async (res) => {
-            let resp = await accmodel.updateOne({grant_ticket: `${grantTicket}`}, {email_verified: emailVerified})
-            if (resp) {
-                res(resp)
-            } else {
-                res(resp)
-            }
-        })
-    },
+    },*/
 
     /**
      * Update account real name data by UID.
@@ -291,24 +256,6 @@ module.exports = {
     },
 
     /**
-     * Update account authorized devices by Grant ticket.
-     *
-     * @param {String} grantTicket Grant ticket of the account.
-     * @param {Array} authorizedDevices New list of authorized deviceIds.
-     * @return {Promise} Account data.
-     */
-    updateAccountGrantDevicesByGrantTicket(grantTicket = "", authorizedDevices = []) {
-        return new Promise(async (res) => {
-            let resp = await accmodel.updateOne({grant_ticket: `${grantTicket}`}, {authorized_devices: authorizedDevices})
-            if (resp) {
-                res(resp)
-            } else {
-                res(resp)
-            }
-        })
-    },
-
-    /**
      * Update account authorized devices by UID.
      *
      * @param {String} accountId UID of the account.
@@ -318,24 +265,6 @@ module.exports = {
     updateAccountGrantDevicesById(accountId = "", authorizedDevices = []) {
         return new Promise(async (res) => {
             let resp = await accmodel.updateOne({account_id: `${accountId}`}, {authorized_devices: authorizedDevices})
-            if (resp) {
-                res(resp)
-            } else {
-                res(resp)
-            }
-        })
-    },
-
-    /**
-     * Update account session token by Grant ticket.
-     *
-     * @param {String} grantTicket Grant ticket of the account.
-     * @param {String} sessionToken New session token for the account.
-     * @return {Promise} Account data.
-     */
-    updateAccountSessionTokenByGrantTicket(grantTicket = "", sessionToken = "") {
-        return new Promise(async (res) => {
-            let resp = await accmodel.updateOne({grant_ticket: `${grantTicket}`}, {session_token: sessionToken})
             if (resp) {
                 res(resp)
             } else {
@@ -496,6 +425,141 @@ module.exports = {
     updateQRByDeviceId(deviceId = "", ticket = "", state = "") {
         return new Promise(async (res) => {
             let resp = await qrloginmodel.updateOne({deviceId: `${deviceId}`, ticket: ticket}, {state: state})
+            if (resp) {
+                res(resp)
+            } else {
+                res(resp)
+            }
+        })
+    },
+
+    /**
+     * Delete QRCode entry by deviceId.
+     *
+     * @param {String} deviceId DeviceId for this entry.
+     * @param {String} ticket = Ticket for this entry.
+     * @return {Promise} Deletes QRCode data.
+     */
+    deleteQRByDeviceId(deviceId = "", ticket = "") {
+        return new Promise(async (res) => {
+            let resp = await qrloginmodel.deleteOne({deviceId: `${deviceId}`, ticket: ticket})
+            if (resp) {
+                res(resp)
+            } else {
+                res(resp)
+            }
+        })
+    },
+
+    // ===================== QRCODE LOGIN =====================
+
+    /**
+     * Create new deviceGrant entry.
+     *
+     * @param {String} ticket deviceGrant ticket.
+     * @param {Number} state State of this deviceGrant.
+     * @param {String} deviceId DeviceId who initialized this deviceGrant entry.
+     * @param {String} email Email of the account who made this grant.
+     * @return {Promise} Creates deviceGrant entry.
+     */
+    createDeviceGrant(ticket = "", state = 0, deviceId = "", email = "") {
+        return new Promise(async (res, rej) => {
+            new devicegrantmodel({
+                ticket: ticket,
+                state: state,
+                code: "",
+                deviceId: deviceId,
+                email: email
+            }).save().then(doc => {
+                res(doc._id)
+            }).catch(err => {
+                rej(err)
+            })
+        })
+    },
+
+    /**
+     * Retrieve deviceGrant data by ticket.
+     *
+     * @param {String} grantTicket Temporary grant ticket issued for this device grant.
+     * @return {Promise} deviceGrant data.
+     */
+    getDeviceGrantByTicket(grantTicket = "") {
+        return new Promise(async (res) => {
+            let resp = await devicegrantmodel.findOne({ticket: `${grantTicket}`})
+            if (resp) {
+                res(resp)
+            } else {
+                res(resp)
+            }
+        })
+    },
+
+    /**
+     * Retrieve deviceGrant data by deviceId.
+     *
+     * @param {String} deviceId deviceId of this grant.
+     * @return {Promise} deviceGrant data.
+     */
+    /*getDeviceGrantByDeviceId(deviceId = "") {
+        return new Promise(async (res) => {
+            let resp = await devicegrantmodel.findOne({deviceId: `${deviceId}`})
+            if (resp) {
+                res(resp)
+            } else {
+                res(resp)
+            }
+        })
+    },*/
+
+    /**
+     * Update deviceGrant entry by ticket.
+     *
+     * @param {String} ticket deviceGrant ticket.
+     * @param {Number} state State of this deviceGrant.
+     * @param {String} code Code of this deviceGrant.
+     * @return {Promise} deviceGrant data.
+     */
+    updateDeviceGrantByTicket(ticket = "", state = 1, code = "") {
+        return new Promise(async (res) => {
+            let resp = await devicegrantmodel.updateOne({ticket: ticket}, {state: state, code: code})
+            if (resp) {
+                res(resp)
+            } else {
+                res(resp)
+            }
+        })
+    },
+
+    /**
+     * Update deviceGrant entry by ticket.
+     *
+     * @param {String} deviceId deviceGrant ticket.
+     * @param {Number} state State of this deviceGrant.
+     * @param {String} ticket Ticket of this deviceGrant.
+     * @return {Promise} deviceGrant data.
+     */
+    updateDeviceGrantByDeviceId(deviceId = "", state = 1, ticket = "") {
+        return new Promise(async (res) => {
+            let resp = await devicegrantmodel.updateOne({deviceId: deviceId}, {state: state, ticket: ticket})
+            if (resp) {
+                res(resp)
+            } else {
+                res(resp)
+            }
+        })
+    },
+
+    /**
+     * Delete deviceGrant entry by deviceId.
+     *
+     * @param {String} deviceId DeviceId for this entry.
+     * @param {String} ticket = Ticket for this entry.
+     * @return {Promise} Deletes deviceGrant data.
+     */
+    deleteDeviceGrantByDeviceId(deviceId = "", ticket = "") {
+        return new Promise(async (res) => {
+            let resp = await devicegrantmodel.deleteOne({deviceId: `${deviceId}`, ticket: ticket})
             if (resp) {
                 res(resp)
             } else {
