@@ -51,7 +51,6 @@ module.exports = {
             password: { type: String, min: 8 },
             banned: {type: Boolean},
             login_method: {type: Number, min: 0, max: 3 },
-            role: {type: String},
             email_verified: {type: Boolean, default: false},
             forget_ticket: {Type: String},
             session_token: {type: String},

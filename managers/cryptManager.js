@@ -112,6 +112,6 @@ module.exports = {
     censorEmail(text = "") {
         let splitted = text.split('@')
         let split2 = splitted[1].split('.')
-        return `${module.exports.censorString(splitted[0])}@${module.exports.censorString(split2[0])}.${split2[1]}`
+        return `${module.exports.censorString(splitted[0])}@${split2[0]}.${split2[1]}`
     }
 }

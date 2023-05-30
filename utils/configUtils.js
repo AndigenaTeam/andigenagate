@@ -1,6 +1,5 @@
 const {existsSync, writeFileSync, mkdirSync} = require("fs");
 const constants = require("./constants");
-const cfg = require('../config.json')
 const {sendLog} = require("./logUtils");
 
 module.exports = {
@@ -96,10 +95,15 @@ module.exports = {
      * Sets login screen scene depending on config setting.
      */
     getSceneFromSettings() {
-        if (cfg.disableRegistration) {
-            return constants.SceneType.Temple;
-        } else {
+        if (!existsSync("./config.json")) {
             return constants.SceneType.Normal;
+        } else {
+            const cfg = require('../config.json');
+            if (cfg.disableRegistration) {
+                return constants.SceneType.Temple;
+            } else {
+                return constants.SceneType.Normal;
+            }
         }
     }
 }

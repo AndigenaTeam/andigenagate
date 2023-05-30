@@ -81,5 +81,19 @@ module.exports = (function() {
         }
     })
 
+    // ==============================================================================
+    //                                 NOTICES
+    //                               Gate preview
+    // ==============================================================================
+
+    miscr.get(`/hk4e/announcement/index.html`, async function (req, res) {
+        try {
+            res.status(200).send(`announcement html lol`)
+        } catch (e) {
+            sendLog('Gate').error(e)
+            res.json({retcode: statusCodes.error.FAIL, message: "An error occurred, try again later! If this error persist contact the server administrator."})
+        }
+    })
+
     return miscr;
 })()

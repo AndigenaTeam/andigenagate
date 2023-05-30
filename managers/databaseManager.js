@@ -79,7 +79,6 @@ module.exports = {
                 password: `${password}`,
                 banned: false,
                 login_method: loginMethod,
-                role: "00001",
                 email_verified: emailVerified,
                 grant_ticket: "",
                 forget_ticket: "",

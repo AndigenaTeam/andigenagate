@@ -5,7 +5,7 @@ Authentication webserver for Andigena.
 1. MongoDB database server
 2. SMTP details for an email account (if you want to verify email addresses)
 3. Discord OAuth2 application credentials for `.env` if you plan to allow `QRCode` login
-4. Proxy service such as [MITMProxy](https://anonfiles.com/x9p5V4daz6/mitmproxy_for_andigena_zip) / [Fiddler](https://pastebin.com)
+4. Proxy service such as [MITMProxy](https://github.com/AndigenaTeam/andigenaconfigs) / [Fiddler](https://github.com/AndigenaTeam/andigenaconfigs)
 
 ## How to use in production
 1. Clone/download this repository `git clone https://github.com/AndigenaTeam/andigenagate.git`
