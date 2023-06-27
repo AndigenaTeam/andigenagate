@@ -53,7 +53,7 @@ module.exports = {
             login_method: {type: Number, min: 0, max: 3 },
             email_verified: {type: Boolean, default: false},
             forget_ticket: {Type: String},
-            session_token: {type: String},
+            combo_token: {type: String},
             authorized_devices: {type: Array, default: []},
             realname: {name: {Type: String}, identity: {Type: String}}
             //game_accounts: {type: Object, default: {}}

@@ -1,10 +1,7 @@
 const express = require('express')
-const {ActionType, statusCodes} = require('../utils/constants')
+const {ActionType} = require('../utils/constants')
 const cfg = require('../config.json')
 const {clientTypeFromClientId, getSceneFromSettings} = require("../utils/configUtils");
-const {readFileSync, existsSync} = require('fs')
-const {sendLog} = require("../utils/logUtils");
-const {getAccountById} = require("../managers/databaseManager");
 
 module.exports = (function() {
     let miscr = express.Router()
@@ -49,50 +46,9 @@ module.exports = (function() {
         return res.json({code: 0})
     })
 
-    // webstatic-sea.hoyoverse.com
-    miscr.get(`/admin/mi18n/:platform/:path/:langfile.json`, function (req, res) {
-        if (!existsSync(`./data/languages/${req.params.path}`)) return res.json({retcode: statusCodes.error.FAIL, message: "An error occured looking for path you specified!"})
-        return res.send(readFileSync(`./data/languages/${req.params.path}/${process.env.ENV === "dev" ? "en" : req.params.langfile}.json`, {encoding: "utf-8"}))
-    })
-
-    miscr.get(`/upload/static-resource/2022/01/11/:file`, function (req, res) {
-        if (!existsSync(`./data/images/${req.params.file}`)) return res.json({retcode: statusCodes.error.FAIL, message: "An error occured looking for path you specified!"})
-        res.sendFile(`./data/images/${req.params.file}`)
-    })
-
-    // ==============================================================================
-    //                              CUSTOM ROUTE
-    //                            weedwacker compatibility
-    // ==============================================================================
-
-    miscr.get(`/extensions/combo/verify`, async function (req, res) {
-        try {
-            sendLog('/extensions/combo/verify').debug(JSON.stringify({uid: req.query.uid, combo_token: req.query.combo_token}))
-            if (!cfg.advanced.weedWackerCompatibility) return res.json({retcode: statusCodes.error.FAIL, message: "WeedWacker login support is not enabled!"})
-            if (!req.query.uid || !req.query.combo_token) return res.sendStatus(401)
-            let account = await getAccountById(`${req.query.uid}`)
-            if (account === null || account.session_token !== req.query.combo_token) return res.sendStatus(401)
-
-            sendLog(`Gate WeedWacker Compatibility`).info((pass) ? `Account with uid ${req.query.uid} passed weedwacker login.` : `Account with uid ${req.query.uid} failed weedwacker login.`)
-            res.sendStatus(200)
-        } catch (e) {
-            sendLog('Gate').error(e)
-            res.json({retcode: statusCodes.error.FAIL, message: "An error occurred, try again later! If this error persist contact the server administrator."})
-        }
-    })
-
-    // ==============================================================================
-    //                                 NOTICES
-    //                               Gate preview
-    // ==============================================================================
-
-    miscr.get(`/hk4e/announcement/index.html`, async function (req, res) {
-        try {
-            res.status(200).send(`announcement html lol`)
-        } catch (e) {
-            sendLog('Gate').error(e)
-            res.json({retcode: statusCodes.error.FAIL, message: "An error occurred, try again later! If this error persist contact the server administrator."})
-        }
+    // external devices
+    miscr.get(`/authentication/type`, function (req, res) {
+        res.send(`AuthenticationSystem`)
     })
 
     return miscr;

@@ -133,10 +133,11 @@ const statusCodes = {
 const DEFAULT_CONFIG = {
     serverAddress: "127.0.0.1",
     serverPort: 669,
+    serverDomain: "",
     disableRegistration: false,
     allowGuestAccounts: false,
     allowQRCodeLogin: true,
-    allowRealnameLogin: false,
+    requireRealname: false,
     verifyAccountEmail: true,
     verifyAccountPassword: true,
     socialLogin: {
@@ -180,7 +181,7 @@ const DEFAULT_KEYS_CONFIG = {
 const DEFAULT_EMAILMSGS = {
     subject: "AndigenaPS Passport",
     text: "Hello, \nYour verification code is: %verifycode%",
-    html: "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\"><style>.co_org{color:#e99b00}.mess{width:690px;overflow:hidden;padding:30px;background:#fcfbfb;border:1px solid #eaeaea}.mess a{width:200px;color:#00f;text-decoration:underline;line-height:16px;word-warp:break-warp;word-break:break-all;font-size:16px}.mess h4{color:#b6b6b6}.mess p{color:#333;line-height:25px}.mess_bot{margin-top:50px}.mess_bot h5{color:#777;border-top:1px solid #666;margin-top:5px;margin-bottom:10px;padding-top:5px}</style><div class=\"mess\"><h3><span style=\"color:#000;font-size:15px\">Hi!</span></h3><span style=\"color:#000;font-size:15px\"></span><p><span style=\"color:#000;font-size:15px\">You are linking your email. Your verification code is:&nbsp;</span><span style=\"color:#000\"><strong><span style=\"color:#4ea4dc;font-size:15px\">%verifycode%</span></strong><span style=\"font-size:15px\">.</span></span></p><span style=\"color:#000;font-size:15px\"></span><p class=\"m_top50\"><span style=\"color:#000;font-size:15px\">Please complete the account verification process in 30 minutes.</span></p><span style=\"color:#000;font-size:15px\"></span><div class=\"mess_bot\"><span style=\"color:#000;font-size:15px\"></span><p><span style=\"color:#000;font-size:15px\">AndigenaPS</span></p><span style=\"color:#000\"></span><h5><span style=\"color:#777;font-size:13px\">This is an automated email. Please do not reply to this email.</span></h5></div></div>"
+    html: "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\"><style>.co_org{color:#e99b00}.mess{width:690px;overflow:hidden;padding:30px;background:#fcfbfb;border:1px solid #eaeaea}.mess a{width:200px;color:#00f;text-decoration:underline;line-height:16px;word-wrap:break-warp;word-break:break-all;font-size:16px}.mess h4{color:#b6b6b6}.mess p{color:#333;line-height:25px}.mess_bot{margin-top:50px}.mess_bot h5{color:#777;border-top:1px solid #666;margin-top:5px;margin-bottom:10px;padding-top:5px}</style><div class=\"mess\"><h3><span style=\"color:#000;font-size:15px\">Hi!</span></h3><span style=\"color:#000;font-size:15px\"></span><p><span style=\"color:#000;font-size:15px\">You are linking your email. Your verification code is:&nbsp;</span><span style=\"color:#000\"><strong><span style=\"color:#4ea4dc;font-size:15px\">%verifycode%</span></strong><span style=\"font-size:15px\">.</span></span></p><span style=\"color:#000;font-size:15px\"></span><p class=\"m_top50\"><span style=\"color:#000;font-size:15px\">Please complete the account verification process in 30 minutes.</span></p><span style=\"color:#000;font-size:15px\"></span><div class=\"mess_bot\"><span style=\"color:#000;font-size:15px\"></span><p><span style=\"color:#000;font-size:15px\">AndigenaPS</span></p><span style=\"color:#000\"></span><h5><span style=\"color:#777;font-size:13px\">This is an automated email. Please do not reply to this email.</span></h5></div></div>"
 }
 
 module.exports = {DEFAULT_CONFIG, DEFAULT_KEYS_CONFIG, DEFAULT_EMAILMSGS, EMAIL_REGEX, ActionType, ClientType, loginStatusEnum, preGrantWay, statusCodes, SceneType, PlatformType}

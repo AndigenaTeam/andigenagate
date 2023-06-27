@@ -6,24 +6,6 @@ const keys = require("../data/configs/keys.json");
 
 module.exports = {
 
-    /*xorData(data, key) {
-        for (let i = 0; i < data.length; i++) {
-            data[i] ^= key[i % key.length];
-        }
-    },
-
-    cloneBuffer(buffer) {
-        const other = Buffer.allocUnsafe(buffer.length);
-        buffer.copy(other);
-        return other;
-    },
-
-    ec2b(buffer, key) {
-        buffer = this.cloneBuffer(buffer);
-        this.xorData(buffer, key);
-        return buffer;
-    },*/
-
     /**
      * Decrypt account password sent from the client.
      *
@@ -58,18 +40,6 @@ module.exports = {
                 res(hash)
             })
         })
-
-        /*let pubkey = readFileSync(key)
-        const chunkSize = (2048 / 8) - 11
-        const chunkCount = Math.ceil(accountPassword.length / chunkSize)
-        const chunks = []
-
-        for (let i = 0; i < chunkCount; i++) {
-            const chunk = accountPassword.subarray(i * chunkSize, (i + 1) * chunkSize)
-            chunks.push(crypto.publicEncrypt({ key: pubkey, padding: crypto.constants.RSA_PKCS1_PADDING }, chunk))
-        }
-
-        return Buffer.concat(chunks)*/
     },
 
     /**
@@ -78,7 +48,7 @@ module.exports = {
      * @param {String} accountPassword Encrypted string to verify against.
      * @param {String} clientPassword String provided to match with.
      * @param {Boolean} decrypt Perform account password client decryption if set to true.
-     * @return {Promise} QRCode data.
+     * @return {Promise} If provided string/password is valid.
      */
     validatePassword(accountPassword, clientPassword, decrypt = true) {
         return new Promise((res) => {
@@ -92,7 +62,7 @@ module.exports = {
     /**
      * Censor provided text.
      *
-     * @param {String} text Text to censor.
+     * @param {Type: String | StringConstructor} text Text to censor.
      */
     censorString(text = "") {
         if (text.length < 4) {
@@ -113,5 +83,32 @@ module.exports = {
         let splitted = text.split('@')
         let split2 = splitted[1].split('.')
         return `${module.exports.censorString(splitted[0])}@${split2[0]}.${split2[1]}`
+    },
+
+    /**
+     * Generate an UID.
+     *
+     * @return {String} Generated UID prefixed by configured prefix.
+     */
+    generateUid() {
+        return cfg.advanced.uidPrefix + Math.floor(1000 + Math.random() * 9000).toString();
+    },
+
+    /**
+     * Generate a generic token used at various places.
+     *
+     * @return {String} Generated token.
+     */
+    generateToken() {
+        return Buffer.from(crypto.randomUUID().replaceAll('-', '')).toString("hex");
+    },
+
+    /**
+     * Generate a 6-digit code used for various verifications.
+     *
+     * @return {String} Generated code.
+     */
+    generateVerifyCode() {
+        return parseInt(Buffer.from(crypto.randomBytes(3)).toString("hex"), 16).toString().substring(0, 6);
     }
 }
