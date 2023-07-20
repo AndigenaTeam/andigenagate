@@ -39,13 +39,16 @@ module.exports = {
         return new Promise(async (res, rej) => {
             rolemodel.countDocuments({name: 'admin'}).then(count => {
                 if (count === 0) {
-                    new rolemodel({role_id: `${crypto.randomInt(1000, 99999999)}`, name: `admin`, prefix: `&6[&cAdmin&6]&r `, created_by: `69`, permissions: [`*`]}).save(function (err, doc) {
-                        if (err) return rej(err)
+                    new rolemodel({role_id: `${crypto.randomInt(1000, 99999999)}`, name: `admin`, prefix: `&6[&cAdmin&6]&r `, created_by: `69`, permissions: [`*`]}).save().then(() => {
                         sendLog('database').debug(`Creating default role "admin"...`)
+                    }).catch(err => {
+                        rej(err);
                     })
-                    new rolemodel({role_id: `${crypto.randomInt(1000, 99999999)}`, name: `default`, prefix: ``, created_by: `69`, permissions: []}).save(function (err, doc) {
-                        if (err) return rej(err)
+
+                    new rolemodel({role_id: `${crypto.randomInt(1000, 99999999)}`, name: `default`, prefix: ``, created_by: `69`, permissions: []}).save().then(() => {
                         sendLog('database').debug(`Creating default role "default"...`)
+                    }).catch(err => {
+                        rej(err);
                     })
                     sendLog("Database").info(`Populated default database entries successfully.`)
                 }
