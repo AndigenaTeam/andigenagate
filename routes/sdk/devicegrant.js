@@ -49,7 +49,6 @@ module.exports = (function() {
 
     pregrant.post(`/account/device/api/preGrantByTicket`, async function(req, res) {
         try {
-            console.log('mraleee')
             switch (req.body.way) {
                 case preGrantWay.WAY_EMAIL: {
                     console.log(req.body);
@@ -113,14 +112,14 @@ module.exports = (function() {
 
             let account = await dbm.getAccountById(req.body.account_id);
             if (account === null || !req.body.game_token) return res.json({retcode: statusCodes.error.LOGIN_FAILED, message: "Game cache information error."});
-            if (!account.authorized_devices.includes(req.headers['x-rpc-device_id'])) return res.json({retcode: statusCodes.error.LOGOUT_FAILED, message: "Device grant required."});
+            if (!account.authorized_devices.includes(req.headers['x-rpc-device_id']) && cfg.verifyAccountEmail) return res.json({retcode: statusCodes.error.LOGOUT_FAILED, message: "Device grant required."});
 
             let ticket = generateToken();
 
             await dbm.updateAccountById(`${req.body.account_id}`, `${req.body.game_token}`);
+            await dbm.createDeviceGrant(ticket, 0, req.headers['x-rpc-device_id'], account.email);
 
             res.json({retcode: statusCodes.success.RETCODE, message: "OK", data: {ticket: `${ticket}`}})
-            await dbm.createDeviceGrant(ticket, 0, req.headers['x-rpc-device_id'], account.email);
 
             sendLog('Gate').info(`Account with UID ${account.account_id} completed required verification(s) check.`)
         } catch (e) {

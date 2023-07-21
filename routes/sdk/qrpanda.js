@@ -30,10 +30,10 @@ module.exports = (function() {
                 url = (cfg.serverDomain !== "") ? `${cfg.serverDomain}/Api/login_by_qr` : `${cfg.serverAddress}:${cfg.serverPort}/Api/login_by_qr`;
             }
 
-            console.log(`${url}?expire=${expires}\u0026ticket=${ticket}\u0026device=${req.body.device}`)
-            res.json({retcode: statusCodes.success.RETCODE, message: "OK", data: {url: `${url}?expire=${expires}\u0026ticket=${ticket}\u0026device=${req.body.device}`}})
-
             await dbm.createQR(`${ticket}`, `${ActionType.qrode.INIT}`, `${req.body.device}`, `${expires}`)
+
+            //console.log(`${url}?expire=${expires}\u0026ticket=${ticket}\u0026device=${req.body.device}`)
+            res.json({retcode: statusCodes.success.RETCODE, message: "OK", data: {url: `${url}?expire=${expires}\u0026ticket=${ticket}\u0026device=${req.body.device}`}})
         } catch (e) {
             sendLog('Gate').error(e)
             res.json({retcode: statusCodes.error.FAIL, message: "An error occurred, try again later! If this error persist contact the server administrator."})

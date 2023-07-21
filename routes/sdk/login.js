@@ -51,15 +51,16 @@ module.exports = (function() {
             }
 
 
-            if (cfg.verifyAccountEmail && !account.email_verified || !account.authorized_devices.includes(req.headers['x-rpc-device_id'])) {
+            if (cfg.verifyAccountEmail && !account.email_verified || !account.authorized_devices.includes(req.headers['x-rpc-device_id']) && cfg.verifyAccountEmail) {
                 let ticket = generateToken();
                 data.device_grant_required = true;
                 data.account.device_grant_ticket = `${ticket}`;
 
-                resp.json({ retcode: statusCodes.success.RETCODE, message: "OK", data: data });
                 await dbm.createDeviceGrant(ticket, 0, req.headers['x-rpc-device_id'], account.email);
 
-            } else if (!cfg.verifyAccountEmail || account.email_verified && account.realname.name !== null || account.realname.identity !== null) {
+                resp.json({ retcode: statusCodes.success.RETCODE, message: "OK", data: data });
+
+            } else if (!cfg.verifyAccountEmail || account.email_verified && rnd.name !== null || rnd.identity !== null) {
                 data.account.is_email_verify = "1";
                 data.account.token = `${account.combo_token}`
                 data.account.realname = `${account.realname.name}`
@@ -112,7 +113,7 @@ module.exports = (function() {
                     reactivate_ticket: "", area_code: "**", device_grant_ticket: "" }
             }
 
-            if (!account.authorized_devices.includes(req.headers['x-rpc-device_id']) && account.email_verified || !account.authorized_devices.includes(req.headers['x-rpc-device_id']) && !account.email_verified) {
+            if (!account.authorized_devices.includes(req.headers['x-rpc-device_id']) && account.email_verified && cfg.verifyAccountEmail || !account.authorized_devices.includes(req.headers['x-rpc-device_id']) && !account.email_verified && cfg.verifyAccountEmail) {
                 let ticket= generateToken();
                 await dbm.createDeviceGrant(ticket, 0, req.headers['x-rpc-device_id'], account.email);
 

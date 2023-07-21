@@ -370,7 +370,8 @@ module.exports = {
                 state: state,
                 deviceId: deviceId,
                 expires: expires
-            }).save().then(() => {
+            }).save().then(doc => {
+                res(doc._id)
                 //sendLog('Database').info(`User ${username} (${accountId}) registered/created successfully.`)
             }).catch(err => {
                 rej(err)
@@ -452,7 +453,8 @@ module.exports = {
                 code: "",
                 deviceId: deviceId,
                 email: email
-            }).save().then(() => {
+            }).save().then(doc => {
+                res(doc._id)
             }).catch(err => {
                 rej(err)
             })

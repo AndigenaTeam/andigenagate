@@ -2,13 +2,14 @@ const express = require('express')
 const session = require('express-session')
 const MemoryStore = require("memorystore")(session)
 const cookieParser = require("cookie-parser")
-const dbm = require('../../managers/databaseManager')
 const {randomUUID} = require('crypto')
+const dbm = require('../../managers/databaseManager')
 const {sendLog} = require('../../utils/logUtils')
 const {sendEmail} = require("../../managers/smtpManager");
 const {statusCodes, ActionType} = require('../../utils/constants');
 const {generateUid, encryptPassword, generateVerifyCode, generateToken, validatePassword} = require("../../managers/cryptManager");
 const emailverifymsgs = require("../../data/configs/email_messages.json");
+const cfg = require('../../config.json')
 
 module.exports = (function() {
     let reg = express.Router();
@@ -37,7 +38,7 @@ module.exports = (function() {
                 let uid = generateUid();
                 let token = generateToken();
 
-                await dbm.createAccount(parseInt(uid), `${req.body.username}`, `${req.body.email}`, `${password}`, 1, false, token, []);
+                await dbm.createAccount(parseInt(uid), `${req.body.username}`, `${req.body.email}`, `${password}`, 1, (!cfg.verifyAccountEmail), token, []);
 
                 sendLog('gate').info(`Account with UID: ${uid} registered.`)
                 res.json({code: statusCodes.success.WEB_STANDARD, data: {

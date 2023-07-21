@@ -168,9 +168,6 @@ const DEFAULT_CONFIG = {
 }
 
 const DEFAULT_KEYS_CONFIG = {
-    dispatchKey: "./data/keys/dispatchKey.bin",
-    dispatchSeed: "./data/keys/dispatchSeed.bin",
-    secretKey: "./data/keys/secretKey.bin",
     signingKey: "./data/keys/SigningKey.pem",
     auth: {
         public: "./data/keys/auth/auth_public_key.pem",
