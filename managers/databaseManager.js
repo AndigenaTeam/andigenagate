@@ -363,7 +363,7 @@ module.exports = {
      * @param {String} expires When will this QRCode entry expire.
      * @return {Promise} Creates QRCode login entry.
      */
-    createQR(ticket = "", state = ActionType.qrode.INIT, deviceId = "", expires = "") {
+    createQR(ticket = "", state = ActionType.qrcode.INIT, deviceId = "", expires = "") {
         return new Promise(async (res, rej) => {
             new qrloginmodel({
                 ticket: ticket,

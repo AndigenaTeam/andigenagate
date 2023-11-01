@@ -30,7 +30,7 @@ module.exports = (function() {
                 url = (cfg.serverDomain !== "") ? `${cfg.serverDomain}/Api/login_by_qr` : `${cfg.serverAddress}:${cfg.serverPort}/Api/login_by_qr`;
             }
 
-            await dbm.createQR(`${ticket}`, `${ActionType.qrode.INIT}`, `${req.body.device}`, `${expires}`)
+            await dbm.createQR(`${ticket}`, `${ActionType.qrcode.INIT}`, `${req.body.device}`, `${expires}`)
 
             //console.log(`${url}?expire=${expires}\u0026ticket=${ticket}\u0026device=${req.body.device}`)
             res.json({retcode: statusCodes.success.RETCODE, message: "OK", data: {url: `${url}?expire=${expires}\u0026ticket=${ticket}\u0026device=${req.body.device}`}})
@@ -57,7 +57,7 @@ module.exports = (function() {
             if (!qrd) return res.json({retcode: statusCodes.error.FAIL, message: "Ticket cache information error."});
             if (new Date(qrd.expires) < Date.now()) return res.json({retcode: statusCodes.error.LOGOUT_ERROR, message: `QRCode expired, generate a new one.`});
 
-            if (qrd.state === ActionType.qrode.CONFIRMED) {
+            if (qrd.state === ActionType.qrcode.CONFIRMED) {
                 let account = await dbm.getAccountByDeviceId(req.body.device, 2);
                 if (account === null) return res.json({retcode: statusCodes.error.FAIL, message: "Account does not exist!"});
                 let rnd = JSON.parse(JSON.stringify(account.realname));
@@ -95,9 +95,9 @@ module.exports = (function() {
         try {
             let qrd = await dbm.getQRByDeviceId(req.query.device, req.query.ticket);
 
-            if (!qrd || new Date(qrd.expires) < Date.now() || qrd.state !== ActionType.qrode.INIT) return res.send(`<h3>Invalid request or QR code has expired. Please scan code displayed by game window again.</h3>`);
+            if (!qrd || new Date(qrd.expires) < Date.now() || qrd.state !== ActionType.qrcode.INIT) return res.send(`<h3>Invalid request or QR code has expired. Please scan code displayed by game window again.</h3>`);
 
-            await dbm.updateQRByDeviceId(req.query.device, req.query.ticket, ActionType.qrode.SCANNED);
+            await dbm.updateQRByDeviceId(req.query.device, req.query.ticket, ActionType.qrcode.SCANNED);
 
             let params = Buffer.from(`${JSON.stringify({expire: qrd.expires, device: req.query.device, ticket: req.query.ticket})}`).toString("base64");
 
@@ -125,7 +125,7 @@ module.exports = (function() {
 
             let qrd = await dbm.getQRByDeviceId(params.device, params.ticket);
 
-            if (!qrd || new Date(qrd.expires) < Date.now() || qrd.state !== ActionType.qrode.SCANNED) return resp.send(`<h3>Invalid request or QR code has expired. Please scan code displayed by game window again.</h3>`);
+            if (!qrd || new Date(qrd.expires) < Date.now() || qrd.state !== ActionType.qrcode.SCANNED) return resp.send(`<h3>Invalid request or QR code has expired. Please scan code displayed by game window again.</h3>`);
 
             await superagent.post(`https://discord.com/api/oauth2/token`)
                 .send({client_id: process.env.DISCORD_CLIENT_ID, client_secret: process.env.DISCORD_CLIENT_SECRET, code,
@@ -135,7 +135,7 @@ module.exports = (function() {
                     let url = (cfg.serverDomain !== "") ? cfg.serverDomain : `${cfg.serverAddress}:${cfg.serverPort}/`;
                     if (err) res.redirect(url);
 
-                    await dbm.updateQRByDeviceId(params.device, params.ticket, ActionType.qrode.CONFIRMED);
+                    await dbm.updateQRByDeviceId(params.device, params.ticket, ActionType.qrcode.CONFIRMED);
 
                     req.session.token = res.body.access_token;
                     resp.redirect(`/sdkDiscordLogin.html?data=${req.query.state}`);

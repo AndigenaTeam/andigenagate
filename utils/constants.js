@@ -2,7 +2,7 @@
 const EMAIL_REGEX = /^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/
 
 const ActionType = {
-    qrode: {
+    qrcode: {
         INIT: "Init",
         SCANNED: "Scanned",
         CONFIRMED: "Confirmed"
@@ -132,7 +132,7 @@ const statusCodes = {
 
 const DEFAULT_CONFIG = {
     serverAddress: "127.0.0.1",
-    serverPort: 669,
+    serverPort: 2069,
     serverDomain: "",
     disableRegistration: false,
     allowGuestAccounts: false,
